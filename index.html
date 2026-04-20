@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Parking">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23f59e0b%22/><text y=%22.9em%22 font-size=%2280%22 x=%2250%22 text-anchor=%22middle%22>🅿️</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23f59e0b%22/><text y=%22.9em%22 font-size=%2280%22 x=%2250%22 text-anchor=%22middle%22>🅿️</text></svg>">
+<title>Parking Control</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:#0a0c0f;color:#e8e0d0;font-family:'JetBrains Mono',monospace;min-height:100vh;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid #f59e0b;border-top-color:transparent;animation:spin 0.8s linear infinite;flex-shrink:0;}
+  .modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.88);align-items:center;justify-content:center;padding:16px;}
+  .modal.open{display:flex;}
+  .mbox{background:#111418;border-radius:16px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;}
+  .mhead{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;}
+  .mbody{padding:14px 16px 20px;}
+  select{appearance:none;background:#1f2937;border:1px solid #4b5563;border-radius:8px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:11px;padding:9px 12px;width:100%;cursor:pointer;}
+  input[type=text],input[type=date]{background:#1f2937;border:1px solid #4b5563;border-radius:8px;color:#fff;font-family:'JetBrains Mono',monospace;padding:9px 12px;width:100%;}
+  input[type=date]{font-size:12px;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:1px;}
+  .pill-ok{background:#064e3b;color:#34d399;border:1px solid #065f46;}
+  .pill-warn{background:#451a03;color:#fb923c;border:1px solid #78350f;}
+  .pill-exp{background:#1f2937;color:#6b7280;border:1px solid #374151;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- CHECK MODAL -->
+<div id="check-modal" class="modal">
+  <div class="mbox" style="border:2px solid #6366f1;">
+    <div class="mhead" style="background:linear-gradient(135deg,#1e1b4b,#312e81);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">🔍</span>
+        <div>
+          <div style="font-family:'Bebas Neue';font-size:17px;letter-spacing:3px;color:#a5b4fc;">ПРОВЕРКА НА КОЛА</div>
+          <div style="font-size:9px;color:#818cf8;">КОНТРОЛ НА ПАРКИНГА</div>
+        </div>
+      </div>
+      <button onclick="closeModal('check-modal')" style="background:none;border:1px solid #374151;border-radius:8px;color:#9ca3af;padding:5px 10px;cursor:pointer;font-family:inherit;font-size:11px;">✕</button>
+    </div>
+    <div class="mbody">
+      <label style="position:relative;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px;border-radius:10px;background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #6366f1;color:#c7d2fe;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;overflow:hidden;margin-bottom:10px;">
+        <input type="file" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleCheckFile(this)">
+        <span style="font-size:18px;">📷</span><span>СНИМАЙ ТАБЕЛАТА</span>
+      </label>
+      <div style="text-align:center;color:#4b5563;font-size:10px;margin-bottom:10px;">— ИЛИ ВЪВЕДИ РЪЧНО —</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input id="check-plate" type="text" maxlength="10" placeholder="СА1234КМ" oninput="this.value=this.value.toUpperCase()" style="font-family:'Bebas Neue';font-size:22px;letter-spacing:4px;">
+        <button onclick="doCheck(document.getElementById('check-plate').value)" style="padding:10px 14px;background:#6366f1;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">ПРОВЕРИ</button>
+      </div>
+      <div id="check-scanning" style="display:none;padding:10px 14px;background:#1a1f28;border:1px solid #6366f1;border-radius:10px;align-items:center;gap:10px;margin-bottom:8px;">
+        <div class="spinner" style="border-color:#818cf8;border-top-color:transparent;"></div>
+        <span style="font-size:11px;color:#818cf8;">AI разпознава...</span>
+      </div>
+      <div id="check-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- АБОНАТИ MODAL -->
+<div id="sub-modal" class="modal">
+  <div class="mbox" style="border:2px solid #f59e0b;">
+    <div class="mhead" style="background:linear-gradient(135deg,#451a03,#78350f);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">⭐</span>
+        <div>
+          <div style="font-family:'Bebas Neue';font-size:17px;letter-spacing:3px;color:#fcd34d;">АБОНАТИ</div>
+          <div style="font-size:9px;color:#f59e0b;">УПРАВЛЕНИЕ · БЕЗ ИЗТРИВАНЕ</div>
+        </div>
+      </div>
+      <button onclick="closeModal('sub-modal')" style="background:none;border:1px solid #374151;border-radius:8px;color:#9ca3af;padding:5px 10px;cursor:pointer;font-family:inherit;font-size:11px;">✕</button>
+    </div>
+    <div class="mbody">
+
+      <!-- Добави / Подноби -->
+      <div style="padding:12px;background:#1a1208;border:1px solid #78350f;border-radius:10px;margin-bottom:14px;">
+        <div style="font-size:10px;color:#f59e0b;letter-spacing:1px;margin-bottom:10px;">➕ ДОБАВИ / ПОДНОВИ АБОНАТ</div>
+
+        <label style="position:relative;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border-radius:8px;background:#78350f;border:1px solid #f59e0b;color:#fcd34d;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;overflow:hidden;margin-bottom:8px;">
+          <input type="file" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleSubFile(this)">
+          <span>📷</span><span>СНИМАЙ ТАБЕЛАТА</span>
+        </label>
+
+        <input id="sub-plate" type="text" maxlength="10" placeholder="СА1234КМ" oninput="this.value=this.value.toUpperCase()" style="font-family:'Bebas Neue';font-size:20px;letter-spacing:4px;margin-bottom:8px;">
+        <input id="sub-name" type="text" maxlength="40" placeholder="Име / Апартамент / Бележка" style="font-size:11px;margin-bottom:8px;">
+
+        <div style="font-size:10px;color:#92400e;margin-bottom:6px;">ВИД АБОНАМЕНТ</div>
+        <select id="sub-type" onchange="updateSubDates()" style="margin-bottom:8px;">
+          <option value="monthly">📅 Месечен (1 месец)</option>
+          <option value="season3">🌿 Сезонен (3 месеца)</option>
+          <option value="season6">☀️ Полугодишен (6 месеца)</option>
+          <option value="annual">🎯 Годишен (12 месеца)</option>
+          <option value="custom">✏️ По избор (ръчни дати)</option>
+        </select>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:9px;color:#92400e;margin-bottom:4px;">ОТ ДАТА</div>
+            <input type="date" id="sub-from" onchange="calcSubTo()">
+          </div>
+          <div>
+            <div style="font-size:9px;color:#92400e;margin-bottom:4px;">ДО ДАТА</div>
+            <input type="date" id="sub-to" readonly style="opacity:0.7;">
+          </div>
+        </div>
+
+        <button onclick="addSubscriber()" style="width:100%;padding:11px;background:#f59e0b;border:none;border-radius:8px;color:#000;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;">ЗАПАЗИ АБОНАМЕНТ</button>
+        <div id="sub-msg" style="margin-top:8px;font-size:11px;"></div>
+      </div>
+
+      <!-- Списък -->
+      <div id="sub-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Storage ──────────────────────────────────────────────────
+function load(k,d){try{return JSON.parse(localStorage.getItem(k)||'null')||d;}catch{return d;}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+
+const active      = load('pk_active_v3',{});
+const log         = load('pk_log_v3',[]);
+const subscribers = load('pk_subs_v3',{}); // plate->{plate,name,periods:[{from,to,type}]}
+
+const RATE=2;
+let currentTab='active', manualOpen=false, mMode='entry';
+
+// ─── Subscriber helpers ───────────────────────────────────────
+function getActivePeriod(plate){
+  const sub=subscribers[plate];
+  if(!sub) return null;
+  const now=Date.now();
+  return (sub.periods||[]).find(p=>p.to>=now)||null;
+}
+function isSubscriber(plate){return !!getActivePeriod(plate.toUpperCase().replace(/\s/g,''));}
+function daysLeft(to){return Math.ceil((to-Date.now())/86400000);}
+function subStatusPill(plate){
+  const sub=subscribers[plate];
+  if(!sub) return '';
+  const p=getActivePeriod(plate);
+  if(p){
+    const d=daysLeft(p.to);
+    if(d<=7) return `<span class="pill pill-warn">⚠ ${d} ДНИ</span>`;
+    return `<span class="pill pill-ok">✓ АКТИВЕН · ${d} дни</span>`;
+  }
+  // has expired period
+  const last=(sub.periods||[]).slice(-1)[0];
+  if(last) return `<span class="pill pill-exp">ИЗТЕКЪЛ ${new Date(last.to).toLocaleDateString('bg-BG')}</span>`;
+  return '';
+}
+function typeLabel(t){return{monthly:'Месечен',season3:'Сезонен 3м',season6:'Полугодишен',annual:'Годишен',custom:'По избор'}[t]||t;}
+
+function saveAll(){save('pk_active_v3',active);save('pk_log_v3',log);save('pk_subs_v3',subscribers);}
+
+// ─── Utils ────────────────────────────────────────────────────
+function fmt(ts){return new Date(ts).toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fmtDate(ts){return new Date(ts).toLocaleDateString('bg-BG',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function fmtDur(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;if(h>0)return h+'ч '+m+'м';if(m>0)return m+'м '+sec+'с';return sec+'с';}
+function calcFee(ms){return(ms/3600000*RATE).toFixed(2);}
+function todayStr(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function tsToStr(ts){
+  const d=new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function addMonths(dateStr,months){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  dt.setMonth(dt.getMonth()+months);
+  dt.setDate(dt.getDate()-1);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+// HTML escape за защита от счупване на имена с ' < > &
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escAttr(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+
+// ─── Subscription date logic ──────────────────────────────────
+function updateSubDates(){
+  const type=document.getElementById('sub-type').value;
+  const toEl=document.getElementById('sub-to');
+  const fromEl=document.getElementById('sub-from');
+  if(!fromEl.value) fromEl.value=todayStr();
+  toEl.readOnly = type!=='custom';
+  toEl.style.opacity = type==='custom'?'1':'0.7';
+  calcSubTo();
+}
+function calcSubTo(){
+  const type=document.getElementById('sub-type').value;
+  const from=document.getElementById('sub-from').value;
+  const toEl=document.getElementById('sub-to');
+  if(!from||type==='custom') return;
+  const months={monthly:1,season3:3,season6:6,annual:12}[type]||1;
+  toEl.value=addMonths(from,months);
+}
+
+// Init dates on load
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('sub-from').value=todayStr();
+  calcSubTo();
+});
+
+// ─── Render ───────────────────────────────────────────────────
+function render(){
+  const AL=Object.values(active);
+  const subCount=Object.keys(subscribers).length;
+  const activeSubCount=Object.keys(subscribers).filter(p=>isSubscriber(p)).length;
+  const expiredSubCount=subCount-activeSubCount;
+
+  document.getElementById('app').innerHTML=`
+    <div style="background:#111418;border-bottom:2px solid #f59e0b;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:8px;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-size:20px;">🅿️</div>
+        <div>
+          <div style="font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:#f59e0b;">PARKING CONTROL</div>
+          <div style="font-size:9px;color:#6b7280;">AI СИСТЕМА · ${new Date().toLocaleDateString('bg-BG')}</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;color:#6b7280;">АКТИВНИ</div>
+        <div style="font-size:26px;font-weight:700;color:${AL.length?'#f59e0b':'#374151'};line-height:1;">${AL.length}</div>
+      </div>
+    </div>
+
+    <div style="padding:14px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <label style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px 8px;border-radius:12px;background:linear-gradient(135deg,#065f46,#047857);border:1px solid #10b981;color:#d1fae5;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;overflow:hidden;">
+        <input type="file" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleFile(this,'entry')">
+        <span style="font-size:28px;">📸</span><span>ВЛИЗАНЕ</span><span style="font-size:9px;opacity:0.7;">СНИМАЙ ТАБЕЛАТА</span>
+      </label>
+      <label style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px 8px;border-radius:12px;background:linear-gradient(135deg,#7f1d1d,#991b1b);border:1px solid #ef4444;color:#fee2e2;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;overflow:hidden;">
+        <input type="file" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleFile(this,'exit')">
+        <span style="font-size:28px;">🚗</span><span>ИЗЛИЗАНЕ</span><span style="font-size:9px;opacity:0.7;">СНИМАЙ ТАБЕЛАТА</span>
+      </label>
+    </div>
+
+    <div style="padding:10px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="openModal('check-modal')" style="padding:14px 8px;background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #6366f1;border-radius:12px;color:#c7d2fe;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;">
+        <span style="font-size:22px;">🔍</span><span>ПРОВЕРКА</span><span style="font-size:9px;color:#818cf8;font-weight:400;">НА КОЛА</span>
+      </button>
+      <button onclick="openModal('sub-modal');renderSubList()" style="padding:14px 8px;background:linear-gradient(135deg,#451a03,#78350f);border:1px solid #f59e0b;border-radius:12px;color:#fcd34d;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;">
+        <span style="font-size:22px;">⭐</span><span>АБОНАТИ</span>
+        <span style="font-size:9px;color:#f59e0b;font-weight:400;">${activeSubCount} АКТИВНИ${expiredSubCount>0?' · '+expiredSubCount+' ИЗТЕКЛИ':''}</span>
+      </button>
+    </div>
+
+    <div style="padding:10px 14px 0;">
+      <button onclick="toggleManual()" style="width:100%;padding:9px;background:${manualOpen?'#1f2937':'transparent'};border:1px solid ${manualOpen?'#6b7280':'#374151'};border-radius:8px;color:#9ca3af;font-family:inherit;font-size:10px;cursor:pointer;">
+        ⌨️ ${manualOpen?'СКРИЙ':'РЪЧНО ВЪВЕЖДАНЕ НА НОМЕР'}
+      </button>
+      ${manualOpen?`<div style="margin-top:8px;padding:12px;background:#111418;border:1px solid #374151;border-radius:10px;">
+        <input id="mplate" type="text" maxlength="10" placeholder="СА1234КМ" oninput="this.value=this.value.toUpperCase()" style="font-family:'Bebas Neue';font-size:22px;letter-spacing:4px;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button id="btn-entry" onclick="setMMode('entry')" style="flex:1;padding:8px;background:${mMode==='entry'?'#065f46':'transparent'};border:1px solid #10b981;border-radius:6px;color:#d1fae5;font-family:inherit;font-size:10px;cursor:pointer;">ВЛИЗАНЕ</button>
+          <button id="btn-exit" onclick="setMMode('exit')" style="flex:1;padding:8px;background:${mMode==='exit'?'#7f1d1d':'transparent'};border:1px solid #ef4444;border-radius:6px;color:#fee2e2;font-family:inherit;font-size:10px;cursor:pointer;">ИЗЛИЗАНЕ</button>
+        </div>
+        <button onclick="doManual()" style="width:100%;padding:10px;background:#f59e0b;border:none;border-radius:8px;color:#000;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;">РЕГИСТРИРАЙ</button>
+      </div>`:''}
+    </div>
+
+    <div id="status" style="padding:0 14px;"></div>
+
+    <div style="margin:12px 14px 0;display:flex;gap:6px;">
+      <button onclick="switchTab('active')" style="flex:1;padding:8px;background:${currentTab==='active'?'#1f2937':'transparent'};border:1px solid ${currentTab==='active'?'#f59e0b':'#374151'};border-radius:8px;color:${currentTab==='active'?'#f59e0b':'#6b7280'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;">ПАРКИРАНИ (${AL.length})</button>
+      <button onclick="switchTab('log')" style="flex:1;padding:8px;background:${currentTab==='log'?'#1f2937':'transparent'};border:1px solid ${currentTab==='log'?'#f59e0b':'#374151'};border-radius:8px;color:${currentTab==='log'?'#f59e0b':'#6b7280'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;">ИСТОРИЯ (${log.length})</button>
+    </div>
+
+    ${currentTab==='active'?`<div style="padding:10px 14px 24px;">${
+      AL.length===0
+      ?`<div style="text-align:center;padding:36px 20px;color:#374151;font-size:11px;"><div style="font-size:36px;margin-bottom:8px;">🅿️</div>НЯМА ПАРКИРАНИ КОЛИ</div>`
+      :AL.map(car=>{
+          const el=Date.now()-car.entryTime, isSub=isSubscriber(car.plate);
+          const sub=subscribers[car.plate], period=sub?getActivePeriod(car.plate):null;
+          return`<div style="margin-bottom:8px;padding:12px 14px;background:#111418;border:1px solid #1f2937;border-left:3px solid ${isSub?'#f59e0b':'#3b82f6'};border-radius:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div style="font-family:'Bebas Neue';font-size:22px;letter-spacing:4px;color:#fff;">${esc(car.plate)}</div>
+                ${isSub?`<div style="font-size:9px;color:#f59e0b;margin-top:2px;">⭐ ${esc(sub.name||'АБОНАТ')} · до ${fmtDate(period.to)}</div>`:`<div style="font-size:9px;color:#6b7280;margin-top:2px;">ОБИКНОВЕН</div>`}
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:14px;font-weight:700;color:${isSub?'#f59e0b':'#3b82f6'};" id="dur-${esc(car.plate)}">${fmtDur(el)}</div>
+                ${isSub?`<div class="pill pill-ok" style="margin-top:4px;">БЕЗПЛАТНО</div>`:`<div style="font-size:10px;color:#6b7280;margin-top:2px;" id="fee-${esc(car.plate)}">${calcFee(el)} лв.</div>`}
+              </div>
+            </div>
+            <div style="font-size:10px;color:#4b5563;margin-top:4px;">Влязла в ${fmt(car.entryTime)} · ${fmtDate(car.entryTime)}</div>
+          </div>`;}).join('')
+    }</div>`:''}
+
+    ${currentTab==='log'?`<div style="padding:10px 14px 24px;">
+      ${log.length>0?`<div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button onclick="exportCSV()" style="flex:1;padding:9px;background:#1a1f28;border:1px solid #374151;border-radius:8px;color:#9ca3af;font-family:inherit;font-size:10px;cursor:pointer;">📊 ИЗТЕГЛИ CSV</button>
+        <button onclick="confirmClearLog()" style="padding:9px 12px;background:#1a1f28;border:1px solid #7f1d1d;border-radius:8px;color:#ef4444;font-family:inherit;font-size:10px;cursor:pointer;">🗑</button>
+      </div>`:''}
+      ${log.length===0
+        ?`<div style="text-align:center;padding:36px 20px;color:#374151;font-size:11px;"><div style="font-size:36px;margin-bottom:8px;">📋</div>НЯМА ЗАПИСИ</div>`
+        :log.map(r=>`<div style="margin-bottom:8px;padding:12px 14px;background:#111418;border:1px solid #1f2937;border-left:3px solid ${r.subscriber?'#f59e0b':'#10b981'};border-radius:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div><div style="font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:#fff;">${esc(r.plate)}</div>
+              ${r.subscriber?`<div style="font-size:9px;color:#f59e0b;">⭐ ${esc(r.subName||'АБОНАТ')}</div>`:''}
+              </div>
+              <div style="text-align:right;">
+                ${r.subscriber?`<div class="pill pill-ok">БЕЗПЛАТНО</div>`:`<div style="font-size:13px;font-weight:700;color:#34d399;">${r.fee} лв.</div>`}
+                <div style="font-size:10px;color:#6b7280;margin-top:2px;">${fmtDur(r.duration)}</div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#4b5563;margin-top:3px;">${r.date} · ${fmt(r.entryTime)} → ${fmt(r.exitTime)}</div>
+          </div>`).join('')}
+    </div>`:''}
+  `;
+}
+
+// ─── Timer ────────────────────────────────────────────────────
+setInterval(()=>{
+  Object.values(active).forEach(car=>{
+    const el=Date.now()-car.entryTime;
+    const d=document.getElementById('dur-'+car.plate);
+    const f=document.getElementById('fee-'+car.plate);
+    if(d) d.textContent=fmtDur(el);
+    if(f) f.textContent=calcFee(el)+' лв.';
+  });
+},1000);
+
+// ─── Sub form ─────────────────────────────────────────────────
+async function handleSubFile(input){
+  const file=input.files[0]; input.value=''; if(!file) return;
+  const msg=document.getElementById('sub-msg');
+  msg.innerHTML=`<span style="color:#f59e0b;">AI разпознава...</span>`;
+  try{
+    const dataUrl=await toDataUrl(file);
+    const plate=await recognizePlate(file,dataUrl);
+    if(!plate){msg.innerHTML=`<span style="color:#fca5a5;">⚠️ Не се вижда. Въведи ръчно.</span>`;return;}
+    document.getElementById('sub-plate').value=plate;
+    msg.innerHTML=`<span style="color:#34d399;">✓ Разпознат: ${plate}</span>`;
+  }catch(e){msg.innerHTML=`<span style="color:#fca5a5;">⚠️ ${e.message}</span>`;}
+}
+
+function addSubscriber(){
+  const plate=(document.getElementById('sub-plate').value||'').trim().toUpperCase().replace(/\s/g,'');
+  const name=(document.getElementById('sub-name').value||'').trim();
+  const type=document.getElementById('sub-type').value;
+  const from=document.getElementById('sub-from').value;
+  const to=document.getElementById('sub-to').value;
+  const msg=document.getElementById('sub-msg');
+
+  if(!plate){msg.innerHTML=`<span style="color:#fca5a5;">⚠️ Въведи номер.</span>`;return;}
+  if(!from||!to){msg.innerHTML=`<span style="color:#fca5a5;">⚠️ Избери дати.</span>`;return;}
+  if(to<=from){msg.innerHTML=`<span style="color:#fca5a5;">⚠️ Крайната дата трябва да е след началната.</span>`;return;}
+
+  const fromTs=new Date(from).getTime();
+  const toTs=new Date(to).getTime()+86399999; // до края на деня
+
+  if(!subscribers[plate]) subscribers[plate]={plate,name,periods:[]};
+  subscribers[plate].name=name||subscribers[plate].name; // обнови името
+  subscribers[plate].periods.push({from:fromTs,to:toTs,type});
+  // Сортирай по дата
+  subscribers[plate].periods.sort((a,b)=>a.from-b.from);
+
+  saveAll();
+  document.getElementById('sub-plate').value='';
+  document.getElementById('sub-name').value='';
+  document.getElementById('sub-from').value=todayStr();
+  calcSubTo();
+  msg.innerHTML=`<span style="color:#34d399;">✓ ${plate} — ${typeLabel(type)} до ${new Date(to).toLocaleDateString('bg-BG')}</span>`;
+  renderSubList();
+  render();
+}
+
+function renderSubList(){
+  const all=Object.values(subscribers);
+  if(all.length===0){
+    document.getElementById('sub-list').innerHTML=`<div style="text-align:center;padding:24px;color:#4b5563;font-size:11px;">Няма добавени абонати</div>`;
+    return;
+  }
+  // Раздели на активни и изтекли
+  const active_subs=all.filter(s=>getActivePeriod(s.plate));
+  const expired_subs=all.filter(s=>!getActivePeriod(s.plate));
+
+  let html='';
+  if(active_subs.length){
+    html+=`<div style="font-size:10px;color:#34d399;letter-spacing:1px;margin-bottom:8px;">✓ АКТИВНИ (${active_subs.length})</div>`;
+    html+=active_subs.map(s=>subCard(s,true)).join('');
+  }
+  if(expired_subs.length){
+    html+=`<div style="font-size:10px;color:#6b7280;letter-spacing:1px;margin:12px 0 8px;">⏰ ИЗТЕКЛИ (${expired_subs.length})</div>`;
+    html+=expired_subs.map(s=>subCard(s,false)).join('');
+  }
+  document.getElementById('sub-list').innerHTML=html;
+}
+
+function subCard(s,isActive){
+  const period=getActivePeriod(s.plate)||s.periods.slice(-1)[0];
+  const dl=isActive?daysLeft(period.to):0;
+  const borderColor=isActive?(dl<=7?'#f59e0b':'#10b981'):'#374151';
+  const allPeriods=(s.periods||[]).slice().reverse(); // newest first
+
+  return`<div style="margin-bottom:10px;padding:12px;background:#111418;border:1px solid ${borderColor};border-radius:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+      <div>
+        <div style="font-family:'Bebas Neue';font-size:22px;letter-spacing:4px;color:${isActive?'#fff':'#6b7280'};">${esc(s.plate)}</div>
+        ${s.name?`<div style="font-size:10px;color:${isActive?'#9ca3af':'#4b5563'};">${esc(s.name)}</div>`:''}
+      </div>
+      <div style="text-align:right;">
+        ${subStatusPill(s.plate)}
+        ${isActive?`<div style="font-size:10px;color:#4b5563;margin-top:4px;">до ${fmtDate(period.to)}</div>`:''}
+      </div>
+    </div>
+    <!-- История на периодите -->
+    <div style="border-top:1px solid #1f2937;padding-top:6px;margin-top:6px;">
+      <div style="font-size:9px;color:#4b5563;letter-spacing:1px;margin-bottom:4px;">ИСТОРИЯ НА АБОНАМЕНТИТЕ</div>
+      ${allPeriods.map((p,i)=>`
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #1f2937;opacity:${i===0?1:0.5};">
+          <span style="font-size:10px;color:#6b7280;">${typeLabel(p.type)}</span>
+          <span style="font-size:10px;color:${p.to>=Date.now()?'#34d399':'#4b5563'};">${fmtDate(p.from)} → ${fmtDate(p.to)}</span>
+        </div>`).join('')}
+    </div>
+    <!-- Бърз бутон за подновяване -->
+    <button onclick="prefillRenewal('${escAttr(s.plate)}','${escAttr(s.name||'')}')" style="margin-top:8px;width:100%;padding:7px;background:#1a1208;border:1px solid #f59e0b;border-radius:6px;color:#fcd34d;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:1px;">
+      🔄 ПОДНОВИ АБОНАМЕНТ
+    </button>
+  </div>`;
+}
+
+function prefillRenewal(plate,name){
+  document.getElementById('sub-plate').value=plate;
+  document.getElementById('sub-name').value=name;
+  // Намери края на последния активен период и започни от следващия ден
+  const sub=subscribers[plate];
+  const lastActive=getActivePeriod(plate);
+  if(lastActive){
+    document.getElementById('sub-from').value=tsToStr(lastActive.to+86400000);
+  } else {
+    document.getElementById('sub-from').value=todayStr();
+  }
+  calcSubTo();
+  // Скролни нагоре до формата
+  document.querySelector('.mbody').scrollTop=0;
+}
+
+// ─── AI ───────────────────────────────────────────────────────
+function toDataUrl(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(file);});}
+async function recognizePlate(file,dataUrl){
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,
+      messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:dataUrl.split(',')[1]}},
+        {type:'text',text:'Намери регистрационния номер на автомобила. Отговори САМО с JSON: {"plate":"АА1234ВВ","found":true} или {"plate":null,"found":false}'}
+      ]}]})});
+  const data=await resp.json();
+  const txt=(data.content||[]).map(b=>b.text||'').join('').trim();
+  const parsed=JSON.parse((txt.match(/\{[\s\S]*\}/)||['{}'])[0]);
+  return parsed.found?parsed.plate.toUpperCase().replace(/\s/g,''):null;
+}
+
+// ─── Process ──────────────────────────────────────────────────
+async function handleFile(input,mode){
+  const file=input.files[0]; input.value=''; if(!file) return;
+  showStatus('scanning');
+  const dataUrl=await toDataUrl(file); showPreview(dataUrl);
+  try{
+    const plate=await recognizePlate(file,dataUrl);
+    if(!plate){showError('Номерът не се вижда. Снимай по-близо или въведи ръчно.');return;}
+    processPlate(plate,mode);
+  }catch(e){showError('Грешка: '+e.message);}
+}
+
+function processPlate(plate,mode){
+  plate=plate.toUpperCase().replace(/\s/g,'');
+  const ts=Date.now(), isSub=isSubscriber(plate), sub=subscribers[plate];
+  if(mode==='entry'){
+    if(active[plate]){showError(plate+' вече е паркирана от '+fmt(active[plate].entryTime)+'.');return;}
+    active[plate]={plate,entryTime:ts};
+    saveAll();
+    showResult('entry',plate,ts,null,null,isSub?`⭐ ${sub.name||'АБОНАТ'} — БЕЗПЛАТНО`:'');
+  }else{
+    if(!active[plate]){showError(plate+' не е регистрирана като паркирана.');return;}
+    const e=active[plate],dur=ts-e.entryTime,f=isSub?'0.00':calcFee(dur);
+    log.unshift({id:plate+'-'+ts,plate,entryTime:e.entryTime,exitTime:ts,duration:dur,fee:f,date:fmtDate(ts),subscriber:isSub,subName:isSub?sub.name:''});
+    delete active[plate];
+    saveAll();
+    showResult('exit',plate,ts,dur,f,isSub?`⭐ ${sub.name||'АБОНАТ'} — БЕЗПЛАТНО`:'');
+  }
+  render();
+}
+
+// ─── Check ────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+async function handleCheckFile(input){
+  const file=input.files[0]; input.value=''; if(!file) return;
+  setScanningCheck(true);
+  const dataUrl=await toDataUrl(file);
+  try{const plate=await recognizePlate(file,dataUrl);if(!plate){showCheckResult(null,'notfound');return;}doCheck(plate);}
+  catch(e){showCheckResult(null,'error',e.message);}
+  setScanningCheck(false);
+}
+function setScanningCheck(on){document.getElementById('check-scanning').style.display=on?'flex':'none';}
+
+function doCheck(plate){
+  if(!plate||!plate.trim()) return;
+  plate=plate.toUpperCase().replace(/\s/g,'');
+  setScanningCheck(false);
+  const isSub=isSubscriber(plate), sub=subscribers[plate], period=sub?getActivePeriod(plate):null;
+  if(active[plate]){
+    showCheckResult(plate,'found',null,active[plate].entryTime,Date.now()-active[plate].entryTime,null,null,isSub,sub,period);
+  }else{
+    const recent=log.find(r=>r.plate===plate);
+    if(recent) showCheckResult(plate,'exited',null,recent.entryTime,recent.duration,recent.exitTime,recent.fee,isSub,sub,period);
+    else showCheckResult(plate,'unknown',null,null,null,null,null,isSub,sub,period);
+  }
+}
+
+function subInfoBlock(isSub,sub,period){
+  if(!sub) return '';
+  const dl=period?daysLeft(period.to):0;
+  return`<div style="margin:8px 0;padding:8px 12px;background:#451a03;border:1px solid #f59e0b;border-radius:8px;font-size:10px;color:#fcd34d;">
+    ⭐ АБОНАТ${sub.name?' · '+sub.name:''}<br>
+    ${period
+      ?`<span style="color:${dl<=7?'#fb923c':'#34d399'};">Активен до ${fmtDate(period.to)} · ${dl} дни</span>`
+      :`<span style="color:#6b7280;">Абонаментът е изтекъл</span>`}
+  </div>`;
+}
+
+function showCheckResult(plate,status,errMsg,entryTime,elapsed,exitTime,fee,isSub,sub,period){
+  const el=document.getElementById('check-result');
+  const si=subInfoBlock(isSub,sub,period);
+  if(status==='found'){
+    el.innerHTML=`<div style="margin-top:12px;padding:14px;background:#064e3b22;border:2px solid #10b981;border-radius:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:18px;">✅</span><span style="font-size:11px;font-weight:700;color:#10b981;letter-spacing:2px;">РЕДОВНО ПАРКИРАНА</span></div>
+      <div style="font-family:'Bebas Neue';font-size:32px;letter-spacing:6px;color:#fff;background:#1f2937;padding:6px 12px;border-radius:8px;display:inline-block;margin-bottom:8px;">${plate}</div>
+      ${si}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:#0d1f16;padding:10px;border-radius:8px;border:1px solid #065f46;">
+          <div style="font-size:9px;color:#6b7280;margin-bottom:3px;">ВЛЯЗЛА В</div>
+          <div style="font-size:13px;color:#34d399;font-weight:700;">${fmt(entryTime)}</div>
+          <div style="font-size:10px;color:#4b5563;">${fmtDate(entryTime)}</div>
+        </div>
+        <div style="background:#0d1f16;padding:10px;border-radius:8px;border:1px solid #065f46;">
+          <div style="font-size:9px;color:#6b7280;margin-bottom:3px;">ПРЕСТОЙ</div>
+          <div style="font-size:13px;color:#f59e0b;font-weight:700;">${fmtDur(elapsed)}</div>
+          <div style="font-size:10px;color:${isSub?'#34d399':'#4b5563'};">${isSub?'БЕЗПЛАТНО':calcFee(elapsed)+' лв.'}</div>
+        </div>
+      </div>
+    </div>`;
+  }else if(status==='exited'){
+    el.innerHTML=`<div style="margin-top:12px;padding:14px;background:#1c1917;border:2px solid #78716c;border-radius:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:18px;">🕐</span><span style="font-size:11px;font-weight:700;color:#a8a29e;letter-spacing:2px;">ВЕЧЕ Е НАПУСНАЛА</span></div>
+      <div style="font-family:'Bebas Neue';font-size:32px;letter-spacing:6px;color:#78716c;background:#1f2937;padding:6px 12px;border-radius:8px;display:inline-block;margin-bottom:8px;">${plate}</div>
+      ${si}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:#111418;padding:10px;border-radius:8px;border:1px solid #292524;">
+          <div style="font-size:9px;color:#6b7280;margin-bottom:3px;">ВЛЯЗЛА / ИЗЛЯЗЛА</div>
+          <div style="font-size:11px;color:#e7e5e4;">${fmt(entryTime)}</div>
+          <div style="font-size:11px;color:#e7e5e4;">${fmt(exitTime)}</div>
+        </div>
+        <div style="background:#111418;padding:10px;border-radius:8px;border:1px solid #292524;">
+          <div style="font-size:9px;color:#6b7280;margin-bottom:3px;">ПРЕСТОЙ / ПЛАТЕНО</div>
+          <div style="font-size:12px;color:#f59e0b;font-weight:700;">${fmtDur(elapsed)}</div>
+          <div style="font-size:12px;color:#34d399;font-weight:700;">${isSub?'БЕЗПЛАТНО':fee+' лв.'}</div>
+        </div>
+      </div>
+    </div>`;
+  }else if(status==='unknown'){
+    el.innerHTML=`<div style="margin-top:12px;padding:14px;background:#7f1d1d22;border:2px solid #ef4444;border-radius:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:18px;">🚫</span><span style="font-size:11px;font-weight:700;color:#ef4444;letter-spacing:2px;">НЕ Е В СИСТЕМАТА</span></div>
+      <div style="font-family:'Bebas Neue';font-size:32px;letter-spacing:6px;color:#ef4444;background:#1f2937;padding:6px 12px;border-radius:8px;display:inline-block;margin-bottom:8px;">${plate}</div>
+      ${si}
+      <div style="font-size:11px;color:#fca5a5;line-height:1.6;">${isSub&&period?'Абонатна кола, но <strong>не е регистрирана</strong> като влязла.':isSub?'Абонаментът е изтекъл и колата не е в системата.':'Тази кола не е регистрирана.'}</div>
+    </div>`;
+  }else if(status==='notfound'){
+    el.innerHTML=`<div style="margin-top:12px;padding:12px;background:#7f1d1d22;border:1px solid #dc2626;border-radius:10px;font-size:11px;color:#fca5a5;">⚠️ Номерът не се вижда. Опитай отново или въведи ръчно.</div>`;
+  }else{
+    el.innerHTML=`<div style="margin-top:12px;padding:12px;background:#7f1d1d22;border:1px solid #dc2626;border-radius:10px;font-size:11px;color:#fca5a5;">⚠️ Грешка: ${errMsg}</div>`;
+  }
+}
+
+// ─── UI helpers ───────────────────────────────────────────────
+function showStatus(t){document.getElementById('status').innerHTML=t==='scanning'?`<div style="margin:12px 0;padding:12px 14px;background:#1a1f28;border:1px solid #f59e0b;border-radius:10px;display:flex;align-items:center;gap:10px;"><div class="spinner"></div><span style="font-size:11px;color:#f59e0b;">AI разпознава номера...</span></div>`:'';}
+function showPreview(d){document.getElementById('status').innerHTML+=`<div style="margin-top:10px;"><img src="${d}" style="width:100%;max-height:130px;object-fit:cover;border-radius:10px;border:1px solid #374151;"></div>`;}
+function showResult(type,plate,ts,dur,f,badge){
+  const isE=type==='entry';
+  document.getElementById('status').innerHTML=`<div style="margin-top:10px;padding:12px 14px;background:${isE?'#064e3b22':'#7f1d1d22'};border:1px solid ${isE?'#10b981':'#ef4444'};border-radius:10px;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:${isE?'#10b981':'#ef4444'};margin-bottom:6px;">${isE?'✅ ВЛИЗАНЕ РЕГИСТРИРАНО':'💰 ИЗЛИЗАНЕ РЕГИСТРИРАНО'}</div>
+    <div style="font-family:'Bebas Neue';font-size:30px;letter-spacing:6px;color:#fff;background:#1f2937;padding:6px 12px;border-radius:6px;display:inline-block;margin-bottom:6px;">${plate}</div>
+    ${badge?`<div style="font-size:10px;color:#f59e0b;margin-bottom:4px;">${badge}</div>`:''}
+    <div style="font-size:11px;color:#9ca3af;">${fmt(ts)}${!isE?` · <span style="color:#f59e0b;">${fmtDur(dur)}</span> · <span style="color:#34d399;">${f==='0.00'?'БЕЗПЛАТНО':f+' лв.'}</span>`:''}</div>
+  </div>`;
+}
+function showError(msg){document.getElementById('status').innerHTML+=`<div style="margin-top:10px;padding:10px 14px;background:#7f1d1d22;border:1px solid #dc2626;border-radius:10px;font-size:11px;color:#fca5a5;">⚠️ ${msg}</div>`;}
+function switchTab(t){currentTab=t;render();}
+function toggleManual(){manualOpen=!manualOpen;render();}
+function setMMode(m){
+  // Запази стойността преди re-render
+  const val=document.getElementById('mplate')?.value||'';
+  mMode=m;
+  render();
+  const inp=document.getElementById('mplate');
+  if(inp){inp.value=val;inp.focus();}
+}
+function doManual(){
+  const p=(document.getElementById('mplate')?.value||'').trim();if(!p)return;
+  document.getElementById('status').innerHTML='';processPlate(p,mMode);
+}
+function exportCSV(){
+  const blob=new Blob(['\uFEFF'+'Номер,Абонат,Дата,Влизане,Излизане,Престой,Такса\n'+
+    log.map(r=>`${r.plate},${r.subscriber?'ДА':'НЕ'},${r.date},${fmt(r.entryTime)},${fmt(r.exitTime)},${fmtDur(r.duration)},${r.subscriber?'БЕЗПЛАТНО':r.fee+' лв.'}`).join('\n')],
+    {type:'text/csv;charset=utf-8'});
+  Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`parking_${new Date().toISOString().slice(0,10)}.csv`}).click();
+}
+function confirmClearLog(){if(confirm('Изчисти историята на влизанията?')){log.length=0;saveAll();render();}}
+
+render();
+</script>
+</body>
+</html>
