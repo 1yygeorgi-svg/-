@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0b0f14" />
+<title>Parking Control Pro — BUILD 17</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#121821;
+    --panel-2:#171f2b;
+    --line:#263242;
+    --line-2:#35465d;
+    --text:#ecf1f7;
+    --muted:#95a3b8;
+    --accent:#f59e0b;
+    --green:#10b981;
+    --red:#ef4444;
+    --blue:#6366f1;
+    --gold:#d4a017;
+    --shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  body{min-height:100vh}
+  button,input,select{font:inherit}
+  button{cursor:pointer;touch-action:manipulation}
+  .app{max-width:1200px;margin:0 auto;padding:14px 14px 28px}
+  .topbar{display:flex;gap:14px;justify-content:space-between;align-items:center;background:linear-gradient(180deg,#10151d,#0d1219);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);position:sticky;top:8px;z-index:20}
+  .brand{display:flex;gap:12px;align-items:center}
+  .brand-icon{width:46px;height:46px;border-radius:12px;background:var(--accent);color:#111;display:grid;place-items:center;font-weight:800;font-size:24px}
+  .brand-title{font-size:20px;font-weight:800;letter-spacing:.04em}
+  .brand-sub{font-size:12px;color:var(--muted)}
+  .badge-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .badge{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--line-2);background:#101720;font-size:12px;color:var(--muted)}
+  .badge strong{color:var(--text)}
+  .daily-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .stat-item{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center}
+  .stat-value{font-size:26px;font-weight:800;color:var(--text)}
+  .stat-label{font-size:11px;color:var(--muted);margin-top:2px}
+  .stat-revenue{border-color:var(--green)}
+  .stat-revenue .stat-value{color:var(--green)}
+  .report-table{width:100%;border-collapse:collapse;font-size:13px}
+  .report-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--line-2);color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase}
+  .report-table td{padding:7px 6px;border-bottom:1px solid var(--line)}
+  .report-table .report-revenue{color:var(--green);font-weight:700;text-align:right}
+  .report-table th:last-child{text-align:right}
+  .report-table td:nth-child(2),.report-table td:nth-child(3),.report-table td:nth-child(4),.report-table th:nth-child(2),.report-table th:nth-child(3),.report-table th:nth-child(4){text-align:center}
+  .report-total{border-top:2px solid var(--accent)}
+  .report-total td{padding-top:10px}
+  .grid{display:grid;gap:14px}
+  .actions{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .action{padding:18px;min-height:122px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;text-align:center}
+  .action h3{margin:0;font-size:15px}
+  .action p{margin:0;font-size:12px;color:rgba(255,255,255,.75)}
+  .entry{background:linear-gradient(180deg,#0d2d22,#12382a);border-color:#1d6d57}
+  .exit{background:linear-gradient(180deg,#351519,#451d22);border-color:#6d2630}
+  .check{background:linear-gradient(180deg,#23285d,#2a3170);border-color:#4b57c9}
+  .subs{background:linear-gradient(180deg,#38260d,#493112);border-color:#87550d}
+  .toolbar{margin-top:14px;display:grid;grid-template-columns:1.5fr 1fr auto auto;gap:10px;align-items:center}
+  .toolbar-manual{grid-template-columns:1.5fr auto auto}
+  .toolbar-actions{grid-template-columns:1fr auto auto auto auto}
+  .field,.select,.button,.ghost,.danger,.success{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);padding:10px 12px}
+  .field::placeholder{color:#7b879a}
+  .button,.ghost,.danger,.success{font-weight:700}
+  .button{background:var(--accent);border-color:#cb8305;color:#111}
+  .ghost{background:#111823}
+  .success{background:#0f382d;border-color:#196750;color:#d7fff0}
+  .danger{background:#3b1619;border-color:#7f262e;color:#ffdada}
+  .tabs{display:flex;gap:8px;margin-top:14px}
+  .tab{flex:1;padding:12px;border-radius:12px;border:1px solid var(--line-2);background:#111823;color:var(--muted);font-weight:700}
+  .tab.active{color:var(--accent);border-color:#8b5e08;background:#1a1510}
+  .content{margin-top:14px}
+  .panel{padding:14px}
+  .section-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}
+  .section-title{font-size:16px;font-weight:800}
+  .muted{color:var(--muted)}
+  .empty{padding:36px 18px;text-align:center;color:var(--muted)}
+  .list{display:grid;gap:10px}
+  .item{padding:14px;border-radius:14px;background:#0f141b;border:1px solid var(--line);position:relative;overflow:hidden}
+  .item.is-subscriber{background:linear-gradient(135deg,#2a1f0a 0%,#1a1610 100%);border:2px solid #f59e0b;box-shadow:0 0 0 1px rgba(245,158,11,.2),0 4px 16px rgba(245,158,11,.1)}
+  .item.is-regular{background:linear-gradient(135deg,#0f1925 0%,#0f141b 100%);border-left:5px solid #3b82f6}
+  .item.is-subscriber::before{content:"⭐ АБОНАТ";position:absolute;top:0;right:0;background:linear-gradient(135deg,#f59e0b,#d97706);color:#1a0f00;padding:4px 12px;font-size:11px;font-weight:800;letter-spacing:1.5px;border-bottom-left-radius:10px;z-index:1}
+  .item.is-regular::before{content:"ОБИКНОВЕН";position:absolute;top:0;right:0;background:#1e3a5f;color:#93c5fd;padding:4px 10px;font-size:10px;font-weight:700;letter-spacing:1px;border-bottom-left-radius:10px;border-left:1px solid #3b82f6;border-bottom:1px solid #3b82f6;z-index:1}
+  .item.is-subscriber .plate{color:#fef3c7}
+  .item.is-regular .plate{color:#dbeafe}
+  /* Поле за номер с бутон камера */
+  .plate-input-row{display:grid;grid-template-columns:1fr 56px;gap:6px;align-items:stretch}
+  .plate-input-row .field{width:100%;min-width:0}
+  .plate-cam-btn{padding:0;font-size:22px;display:flex;align-items:center;justify-content:center}
+  /* Batch list — масова проверка */
+  .batch-row{display:flex;gap:10px;align-items:flex-start}
+  .batch-photo{width:80px;height:60px;flex-shrink:0}
+  .batch-content{flex:1;min-width:0}
+  .batch-input-row{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center}
+  .batch-num{min-width:22px}
+  .batch-plate-input{min-height:38px;padding:6px 10px;width:100%;min-width:0}
+  .batch-check-btn{white-space:nowrap}
+  .item-row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .plate{font-size:30px;font-weight:800;letter-spacing:.14em}
+  .subnote{margin-top:4px;font-size:12px;color:#e9c36a}
+  .minor{font-size:12px;color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid transparent}
+  .pill-green{background:#103327;color:#77f0c5;border-color:#1e755b}
+  .pill-red{background:#3a1719;color:#ffb7b7;border-color:#8d3038}
+  .pill-gold{background:#3b2a0d;color:#ffd77d;border-color:#8a6418}
+  .pill-gray{background:#1d2430;color:#bcc7d6;border-color:#3c4b62}
+  .kpi{font-size:18px;font-weight:800}
+  .note{font-size:13px;color:var(--muted);margin-top:6px}
+  .inline-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .small{padding:8px 10px;min-height:0;font-size:12px}
+  .status{margin-top:14px}
+  .status-box{padding:14px;border-radius:16px;border:1px solid var(--line-2);background:#101720}
+  .status-box.ok{border-color:#1d6d57;background:#0c2018}
+  .status-box.err{border-color:#8d3038;background:#241214}
+  .status-box.warn{border-color:#916118;background:#22190b}
+  .status-title{font-size:12px;font-weight:800;letter-spacing:.12em;margin-bottom:8px}
+  .status-plate{display:inline-block;padding:8px 14px;border-radius:10px;background:#1a2430;font-size:30px;font-weight:800;letter-spacing:.18em}
+  .status-meta{margin-top:8px;font-size:14px}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+  .modal.open{display:flex}
+  .dialog{width:min(780px,100%);max-height:92vh;overflow:auto;background:#0f141b;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .dialog-head{position:sticky;top:0;background:#111823;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;z-index:2}
+  .dialog-body{padding:16px}
+  .form-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px}
+  .label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+  .stack{display:grid;gap:10px}
+  .subcard{padding:12px;border-radius:14px;border:1px solid var(--line);background:#101720}
+  .subcard.active{border-color:#1d6d57}
+  .subcard.expired{border-color:#49566b}
+  .history-grid{display:grid;gap:6px;margin-top:8px}
+  .history-row{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:6px 0;border-top:1px dashed #283444}
+  .hint{font-size:12px;color:var(--muted)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+  .photo-thumb{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line-2);cursor:pointer;background:#0a0e14;display:block}
+  .photo-thumb:hover{border-color:var(--accent)}
+  .photo-preview-big{width:100%;max-height:55vh;object-fit:contain;border-radius:12px;border:1px solid var(--line-2);background:#000;display:block;margin-bottom:10px}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:100;padding:14px;cursor:zoom-out}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+  .item-row.with-photo{align-items:flex-start}
+  .item-photo-col{flex-shrink:0}
+  [class^="batch-result-"]{font-size:12px;color:var(--muted)}
+  @media (max-width: 920px){.actions{grid-template-columns:1fr 1fr}.toolbar,.form-grid,.split{grid-template-columns:1fr}.topbar{position:static;flex-direction:column;align-items:stretch}.daily-stats{grid-template-columns:repeat(4,1fr)}.badge-row{justify-content:center}}
+  
+  /* === Подобрения за телефони (под 600px) === */
+  @media (max-width: 600px){
+    body{padding:0}
+    .app{padding:8px 8px 28px}
+    .topbar{padding:10px;border-radius:14px;top:4px}
+    .actions{grid-template-columns:1fr 1fr;gap:8px}
+    .action{padding:12px 8px;min-height:88px;gap:4px}
+    .action h3{font-size:13px;line-height:1.2}
+    .action p{font-size:10px;line-height:1.2}
+    .toolbar{gap:6px;grid-template-columns:1fr 1fr 1fr !important}
+    .toolbar-manual{grid-template-columns:1fr !important}
+    .toolbar-manual .inline-actions{display:flex;gap:6px}
+    .toolbar-manual .inline-actions .success,.toolbar-manual .inline-actions .danger{flex:1}
+    .toolbar-actions{grid-template-columns:1fr 1fr !important}
+    .toolbar-actions input{grid-column:1/-1}
+    .toolbar .button,.toolbar .ghost,.toolbar .danger,.toolbar .success{font-size:12px;padding:8px 6px;min-height:40px}
+    .tabs{gap:6px}
+    .tab{padding:10px 6px;font-size:12px}
+    .panel{padding:10px}
+    .section-title{font-size:14px}
+    .item{padding:10px}
+    .item-row{flex-wrap:wrap;gap:8px}
+    .plate{font-size:22px !important;letter-spacing:.08em}
+    .kpi{font-size:14px}
+    .note{font-size:11px;margin-top:3px}
+    .minor,.subnote{font-size:11px}
+    .pill{font-size:10px;padding:3px 7px}
+    .photo-thumb{max-width:64px !important;max-height:64px !important}
+    /* Картите - на телефон да не се режат, бутоните под текста */
+    .item-row{flex-wrap:wrap !important}
+    .item-row > div:nth-of-type(1){flex-shrink:0}
+    .item-row > div{min-width:0;word-wrap:break-word}
+    .item-row > div[style*="text-align:right"]{text-align:left !important;flex-basis:100%;margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .item-row > div[style*="text-align:right"] .inline-actions{margin-top:0 !important;justify-content:flex-start !important}
+    .small{font-size:11px !important;padding:6px 10px !important;min-height:32px !important}
+    .inline-actions{gap:4px !important;flex-wrap:wrap !important}
+    .brand-icon{width:38px;height:38px;font-size:18px}
+    .brand-title{font-size:16px}
+    .brand-sub{font-size:10px}
+    .daily-stats{grid-template-columns:repeat(2,1fr) !important;gap:6px}
+    .stat-item{padding:8px !important}
+    .stat-value{font-size:18px !important}
+    .stat-label{font-size:10px !important}
+    .field{font-size:14px;padding:8px 10px;min-height:40px}
+    .form-grid{gap:8px}
+    /* Batch на телефон - бутонът слиза под input-а */
+    .batch-photo{width:64px !important;height:48px !important}
+    .batch-input-row{grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:6px}
+    .batch-input-row .batch-plate-input{grid-column:2;grid-row:1}
+    .batch-input-row .batch-num{grid-column:1;grid-row:1}
+    .batch-input-row .batch-check-btn{grid-column:1/-1;grid-row:2;width:100%}
+  }
+  
+  /* По-стегнат изглед за много малки екрани (под 380px) */
+  @media (max-width: 380px){
+    .actions{grid-template-columns:1fr 1fr}
+    .action{min-height:74px;padding:10px 6px}
+    .action h3{font-size:12px}
+    .action p{display:none}
+    .plate{font-size:18px !important;letter-spacing:.06em}
+    .toolbar{grid-template-columns:1fr 1fr !important}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<input id="camera-file" type="file" accept="image/*" capture="environment" style="display:none" />
+<input id="batch-file" type="file" accept="image/*" multiple style="display:none" />
+
+<div class="modal" id="modal-photo" aria-hidden="true">
+  <div class="dialog">
+    <div class="dialog-head">
+      <div>
+        <div class="section-title" id="photo-modal-title">Снимка</div>
+        <div class="hint">Прегледай снимката, въведи номера и потвърди</div>
+      </div>
+      <button class="ghost small" data-close="modal-photo">Затвори</button>
+    </div>
+    <div class="dialog-body">
+      <img id="photo-preview" class="photo-preview-big" alt="Снимка на табелата" />
+      <div class="split">
+        <div>
+          <label class="label">Номер на колата</label>
+          <input id="photo-plate" class="field mono" type="text" maxlength="10" placeholder="Номер" />
+        </div>
+        <div style="display:flex;align-items:end;gap:8px">
+          <button class="button" data-action="photo-confirm" style="flex:1">Потвърди</button>
+          <button class="ghost" data-action="photo-retake">Нова снимка</button>
+        </div>
+      </div>
+      <div id="photo-msg" class="note" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" data-close-lightbox="1">
+  <img id="lightbox-img" alt="Снимка" />
+</div>
+
+<div class="modal" id="modal-check" aria-hidden="true">
+  <div class="dialog">
+    <div class="dialog-head">
+      <div>
+        <div class="section-title">Проверка</div>
+        <div class="hint">Единична или масова проверка</div>
+      </div>
+      <button class="ghost small" data-close="modal-check">Затвори</button>
+    </div>
+    <div class="dialog-body">
+      <div class="tabs" style="margin-bottom:12px">
+        <button class="tab active" data-check-tab="single" id="ctab-single">Единична</button>
+        <button class="tab" data-check-tab="batch" id="ctab-batch">Масова проверка</button>
+      </div>
+
+      <div id="check-tab-single">
+        <img id="check-photo-preview" class="photo-preview-big" alt="Снимка" style="display:none;cursor:zoom-in" onclick="if(this.src) window.__openLightbox(this.src)" />
+        <div class="split">
+          <div>
+            <label class="label">Номер</label>
+            <input id="check-plate" class="field mono" type="text" maxlength="10" placeholder="Номер" />
+          </div>
+          <div style="display:flex;align-items:end;gap:8px">
+            <button class="button" data-action="check-submit" style="flex:1">Провери</button>
+            <button class="ghost" data-action="check-camera" title="Снимай номера">📸</button>
+          </div>
+        </div>
+        <div id="check-result" class="status"></div>
+      </div>
+
+      <div id="check-tab-batch" style="display:none">
+        <div class="card panel" style="text-align:center;margin-bottom:12px">
+          <p style="color:var(--muted);font-size:13px;margin-bottom:10px">Избери снимки от галерията или направи нови с камерата на телефона. 🤖 AI разпознава автоматично номерата — после само натискаш "Провери".</p>
+          <div class="inline-actions" style="justify-content:center">
+            <button class="button" data-action="batch-pick">📷 Избери снимки</button>
+            <button class="ghost" data-action="batch-clear">Изчисти</button>
+          </div>
+          <div id="batch-count" class="note" style="margin-top:8px"></div>
+        </div>
+        <div id="batch-list" class="list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal-subs" aria-hidden="true">
+  <div class="dialog">
+    <div class="dialog-head">
+      <div>
+        <div class="section-title">Управление</div>
+        <div class="hint">Абонати и отчетност (защитено с парола)</div>
+      </div>
+      <button class="ghost small" data-close="modal-subs">Затвори</button>
+    </div>
+    <div class="dialog-body">
+      <div class="tabs" style="margin-bottom:12px">
+        <button class="tab active" data-subs-tab="subscribers" id="stab-subscribers">Абонати</button>
+        <button class="tab" data-subs-tab="customers" id="stab-customers">База клиенти</button>
+        <button class="tab" data-subs-tab="reports" id="stab-reports">Отчетност</button>
+      </div>
+
+      <div id="subs-tab-subscribers">
+      <div class="stack">
+        <div class="card panel">
+          <div class="section-head">
+            <div class="section-title">Добави / поднови</div>
+            <div class="hint">📷 Снимай или въведи ръчно</div>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="label">Номер</label>
+              <div class="plate-input-row">
+                <input id="sub-plate" class="field mono" type="text" maxlength="10" placeholder="Номер" />
+                <button class="ghost plate-cam-btn" data-action="sub-camera" title="Снимай табелата">📷</button>
+              </div>
+            </div>
+            <div>
+              <label class="label">Име / апартамент</label>
+              <input id="sub-name" class="field" type="text" maxlength="60" placeholder="Име / апартамент / бележка" />
+            </div>
+            <div>
+              <label class="label">Тип</label>
+              <select id="sub-type" class="select">
+                <option value="monthly">Месечен (1 месец)</option>
+                <option value="season3">Сезонен (3 месеца)</option>
+                <option value="season6">Полугодишен (6 месеца)</option>
+                <option value="annual">Годишен (12 месеца)</option>
+                <option value="custom">По избор</option>
+              </select>
+            </div>
+          </div>
+          <div class="split" style="margin-top:10px">
+            <div>
+              <label class="label">От дата</label>
+              <input id="sub-from" class="field" type="date" />
+            </div>
+            <div>
+              <label class="label">До дата</label>
+              <input id="sub-to" class="field" type="date" />
+            </div>
+          </div>
+          <div class="inline-actions" style="margin-top:10px">
+            <button class="button" data-action="sub-save">Запази абонамент</button>
+            <button class="ghost" data-action="sub-prefill-today">От днес</button>
+          </div>
+          <div id="sub-msg" class="note"></div>
+        </div>
+
+        <div class="card panel">
+          <div class="toolbar" style="grid-template-columns:1fr auto">
+            <input id="sub-search" class="field" type="text" placeholder="Търси по номер / име" />
+            <button class="ghost" data-action="sub-clear-search">Изчисти</button>
+          </div>
+          <div id="sub-list" class="list" style="margin-top:12px"></div>
+        </div>
+      </div>
+      </div>
+
+      <div id="subs-tab-customers" style="display:none">
+        <div class="card panel">
+          <div class="section-head">
+            <div class="section-title">База клиенти</div>
+            <div class="hint">Всички номера + контакти</div>
+          </div>
+          <div style="font-size:12px;color:#95a3b8;margin-bottom:10px;line-height:1.5">
+            💡 Тук се пазят всички номера, които са влизали в паркинга. Може да добавяш име, телефон, инфо за колата и бележки. Полезно е, ако искаш да намериш собственика по-късно.
+          </div>
+          <div class="inline-actions" style="margin-bottom:10px">
+            <input id="cust-search" class="field" type="text" placeholder="Търси по номер, име или телефон" />
+            <button class="ghost" data-action="cust-clear-search">Изчисти</button>
+          </div>
+          <div id="cust-list" class="list"></div>
+        </div>
+      </div>
+
+      <div id="subs-tab-reports" style="display:none">
+        <div class="card panel">
+          <div class="section-head">
+            <div class="section-title">Отчетност по период</div>
+            <div class="hint">Избери период за дневен разбив</div>
+          </div>
+          <div class="inline-actions" style="flex-wrap:wrap;margin-bottom:10px">
+            <button class="ghost small" data-action="report-today">Днес</button>
+            <button class="ghost small" data-action="report-week">Тази седмица</button>
+            <button class="ghost small" data-action="report-month">Този месец</button>
+            <button class="ghost small" data-action="report-prev-month">Миналия месец</button>
+          </div>
+          <div class="split">
+            <div>
+              <label class="label">От</label>
+              <input id="report-from" class="field" type="date" />
+            </div>
+            <div>
+              <label class="label">До</label>
+              <input id="report-to" class="field" type="date" />
+            </div>
+          </div>
+          <div class="inline-actions" style="margin-top:10px">
+            <button class="button" data-action="report-generate">Покажи отчет</button>
+          </div>
+        </div>
+        <div id="report-result" style="margin-top:12px"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const CONFIG = {
+    ratePerHour: 2.5,
+    currency: '€',
+    storageKey: 'parking_control_pro_v1',
+    snapshotLimit: 15,
+    refreshMs: 1000,
+    build: 17,
+    aiEnabled: true,
+    ocrMode: 'tesseract',
+    // Многоетажна тарифа - винаги се избира НАЙ-ИЗГОДНАТА за клиента
+    // tier = праг в часове + цена
+    pricingTiers: [
+      { hours: 1,    price: 2.5,  label: '1 час'      },
+      { hours: 24,   price: 10,   label: '24 часа'    },
+      { hours: 168,  price: 60,   label: '7 дена'     },
+      { hours: 720,  price: 140,  label: '30 дена'    },
+      { hours: 2880, price: 300,  label: '4 месеца'   },
+    ],
+  };
+
+  const TYPE_MONTHS = { monthly:1, season3:3, season6:6, annual:12, custom:0 };
+  const TYPE_LABELS = { monthly:'Месечен', season3:'Сезонен 3м', season6:'Полугодишен', annual:'Годишен', custom:'По избор' };
+
+  const state = loadState();
+  const ui = { tab: 'active', query: '', subQuery: '', toast: '' };
+  const pendingPhoto = { mode: 'entry', dataUrl: '' };
+  const batchPhotos = [];
+  const SUBS_PASSWORD = '7778';
+  const SUBS_UNLOCK_MS = 2 * 60 * 1000;
+  let subsUnlockedAt = 0;
+
+  // Обща функция за парола - връща true ако е въведена правилно
+  function requirePassword(reason){
+    if (Date.now() - subsUnlockedAt < SUBS_UNLOCK_MS) return true;
+    const entered = prompt(reason || 'Въведи парола:');
+    if (entered === null) return false;
+    if (entered === SUBS_PASSWORD) {
+      subsUnlockedAt = Date.now();
+      return true;
+    }
+    showStatusErr('Грешна парола.');
+    return false;
+  }
+  let toastTimer = 0;
+
+  setInterval(() => {
+    if (ui.tab !== 'active') return;
+    const wrap = document.getElementById('active-list');
+    if (!wrap) return;
+    for (const car of Object.values(state.active)) {
+      const el = Date.now() - car.entryTime;
+      const d = document.getElementById('dur-' + car.plate);
+      const f = document.getElementById('fee-' + car.plate);
+      if (d) d.textContent = formatDuration(el);
+      if (f) f.textContent = isSubscriber(car.plate) ? 'БЕЗПЛАТНО' : money(calcFee(el));
+    }
+  }, CONFIG.refreshMs);
+
+  document.addEventListener('click', onGlobalClick);
+  document.addEventListener('input', onGlobalInput);
+  document.addEventListener('change', onGlobalChange);
+  document.addEventListener('keydown', onKeyDown);
+
+  render();
+
+  function onGlobalClick(e){
+    const btn = e.target.closest('[data-action],[data-open],[data-close],[data-tab],[data-subs-tab],[data-check-tab],[data-sub-renew],[data-sub-cancel],[data-sub-edit],[data-sub-delete],[data-sub-period-delete],[data-history-fill],[data-batch-check],[data-log-delete],[data-active-cancel],[data-cust-edit],[data-cust-delete]');
+    if (btn?.dataset.open) return openModal(btn.dataset.open);
+    if (btn?.dataset.close) return closeModal(btn.dataset.close);
+    if (btn?.dataset.tab) { ui.tab = btn.dataset.tab; render(); return; }
+    if (btn?.dataset.subsTab) { switchSubsTab(btn.dataset.subsTab); return; }
+    if (btn?.dataset.checkTab) { switchCheckTab(btn.dataset.checkTab); return; }
+    if (btn?.dataset.batchCheck) { doBatchCheck(Number(btn.dataset.batchCheck)); return; }
+    if (btn?.dataset.action) {
+      const a = btn.dataset.action;
+      if (a === 'manual-entry') return registerManualWithMode('entry');
+      if (a === 'manual-exit') return registerManualWithMode('exit');
+      if (a === 'entry-camera') return triggerCamera('entry');
+      if (a === 'exit-camera') return triggerCamera('exit');
+      if (a === 'check-camera') return triggerCamera('check');
+      if (a === 'sub-camera') return triggerCamera('subscriber');
+      if (a === 'photo-confirm') return confirmPhotoEntry();
+      if (a === 'photo-retake') return triggerCamera(pendingPhoto.mode);
+      if (a === 'open-check') return openModal('modal-check');
+      if (a === 'open-subs') return openSubsWithPassword();
+      if (a === 'undo-last') return undoLast();
+      if (a === 'export-csv') return exportCSV();
+      if (a === 'export-json') return exportJSON();
+      if (a === 'import-json') return triggerImport();
+      if (a === 'clear-log') return clearLog();
+      if (a === 'sub-save') return addSubscriber();
+      if (a === 'sub-prefill-today') return setSubFrom(todayLocal());
+      if (a === 'check-submit') return doCheckFromInput();
+      if (a === 'sub-clear-search') { ui.subQuery=''; renderSubsOnly(); return; }
+      if (a === 'cust-clear-search') { customerSearchQuery=''; const inp = document.getElementById('cust-search'); if (inp) inp.value=''; renderCustomerList(); return; }
+      if (a === 'search-clear') { ui.query=''; render(); return; }
+      if (a === 'report-today') return setReportPeriod('today');
+      if (a === 'report-week') return setReportPeriod('week');
+      if (a === 'report-month') return setReportPeriod('month');
+      if (a === 'report-prev-month') return setReportPeriod('prev-month');
+      if (a === 'report-generate') return generateReport();
+      if (a === 'batch-pick') return triggerBatchPick();
+      if (a === 'batch-clear') return clearBatch();
+    }
+    if (btn?.dataset.subRenew) {
+      const plate = btn.dataset.subRenew;
+      const sub = state.subscribers[plate];
+      document.getElementById('sub-plate').value = plate;
+      document.getElementById('sub-name').value = sub?.name || '';
+      document.getElementById('sub-from').value = nextRenewalDate(plate);
+      recalcSubTo();
+      openModal('modal-subs');
+      return;
+    }
+    if (btn?.dataset.subCancel) { cancelLastSubscriberPeriod(btn.dataset.subCancel); return; }
+    if (btn?.dataset.subEdit) { editSubscriber(btn.dataset.subEdit); return; }
+    if (btn?.dataset.subDelete) { deleteSubscriber(btn.dataset.subDelete); return; }
+    if (btn?.dataset.subPeriodDelete) { deleteSubscriberPeriod(btn.dataset.subPeriodDelete, Number(btn.dataset.periodIdx)); return; }
+    if (btn?.dataset.logDelete) { deleteLogEntry(btn.dataset.logDelete); return; }
+    if (btn?.dataset.activeCancel) { cancelActiveEntry(btn.dataset.activeCancel); return; }
+    if (btn?.dataset.custEdit) { editCustomer(btn.dataset.custEdit); return; }
+    if (btn?.dataset.custDelete) { clearCustomerInfo(btn.dataset.custDelete); return; }
+    if (btn?.dataset.historyFill) { ui.query = btn.dataset.historyFill; ui.tab = 'log'; render(); return; }
+    if (e.target.dataset?.photoOpen) { return openLightbox(e.target.dataset.photoOpen); }
+    if (e.target.id === 'lightbox' || e.target.id === 'lightbox-img' || e.target.dataset?.closeLightbox) { return closeLightbox(); }
+  }
+
+  function onGlobalInput(e){
+    if (e.target.id === 'manual-plate' || e.target.id === 'check-plate' || e.target.id === 'sub-plate' || e.target.id === 'photo-plate') e.target.value = normalizePlate(e.target.value, true);
+    if (e.target.classList?.contains('batch-plate-input')) e.target.value = normalizePlate(e.target.value, true);
+    if (e.target.id === 'search') { ui.query = e.target.value.trim(); render(); }
+    if (e.target.id === 'sub-search') { ui.subQuery = e.target.value.trim(); renderSubsOnly(); }
+    if (e.target.id === 'cust-search') { customerSearchQuery = e.target.value.trim(); renderCustomerList(); }
+  }
+
+  function onGlobalChange(e){ if (e.target.id === 'sub-type' || e.target.id === 'sub-from') recalcSubTo(); }
+
+  function onKeyDown(e){
+    if (e.key === 'Escape') { closeModal('modal-check'); closeModal('modal-subs'); closeModal('modal-photo'); closeLightbox(); }
+    if (e.key === 'Enter' && document.activeElement?.id === 'manual-plate') registerManualWithMode('entry');
+    if (e.key === 'Enter' && document.activeElement?.id === 'check-plate') doCheckFromInput();
+    if (e.key === 'Enter' && document.activeElement?.id === 'photo-plate') confirmPhotoEntry();
+    if (e.key === 'Enter' && document.activeElement?.classList?.contains('batch-plate-input')) {
+      const idx = Number(document.activeElement.dataset.batchIdx);
+      doBatchCheck(idx);
+      const next = document.querySelector(`[data-batch-idx="${idx + 1}"]`);
+      if (next) setTimeout(() => next.focus(), 50);
+    }
+  }
+
+  function render(){
+    const activeArr = Object.values(state.active).sort((a,b)=>a.entryTime-b.entryTime);
+    const subscribers = Object.values(state.subscribers);
+    const activeSubs = subscribers.filter(s => getActivePeriod(s.plate));
+    const expiredSubs = subscribers.length - activeSubs.length;
+    const filteredActive = activeArr.filter(car => matchQuery(car.plate, ui.query) || matchQuery(state.subscribers[car.plate]?.name || '', ui.query));
+    const filteredLog = state.log.filter(r => !ui.query || matchQuery(r.plate, ui.query) || matchQuery(state.subscribers[r.plate]?.name || r.subName || '', ui.query));
+
+    const todayStr = formatDate(Date.now());
+    const todayLog = state.log.filter(r => r.date === todayStr);
+    const todayExits = todayLog.length;
+    const todayPaid = todayLog.filter(r => !r.subscriber);
+    const todayFree = todayLog.filter(r => r.subscriber);
+    const todayRevenue = todayPaid.reduce((s, r) => s + Number(r.fee || 0), 0);
+
+    document.getElementById('app').innerHTML = `
+      <div class="app">
+        <div class="topbar">
+          <div class="brand">
+            <div class="brand-icon">P</div>
+            <div>
+              <div class="brand-title">Parking Control Pro</div>
+              <div class="brand-sub">🤖 AI • от ${CONFIG.pricingTiers[0].price}${escapeHtml(CONFIG.currency)}/час • BUILD ${CONFIG.build}</div>
+            </div>
+          </div>
+          <div class="badge-row">
+            <span class="badge">Активни: <strong>${activeArr.length}</strong></span>
+            <span class="badge">Абонати: <strong>${activeSubs.length}</strong> / ${subscribers.length}</span>
+          </div>
+        </div>
+        <div class="daily-stats">
+          <div class="stat-item"><div class="stat-value">${todayExits}</div><div class="stat-label">Излезли днес</div></div>
+          <div class="stat-item"><div class="stat-value">${todayPaid.length}</div><div class="stat-label">Платени</div></div>
+          <div class="stat-item"><div class="stat-value">${todayFree.length}</div><div class="stat-label">Абонати</div></div>
+          <div class="stat-item stat-revenue"><div class="stat-value">${todayRevenue.toFixed(2)}</div><div class="stat-label">${escapeHtml(CONFIG.currency)} днес</div></div>
+        </div>
+        <div class="grid actions">
+          <button class="card action entry" data-action="entry-camera"><div style="font-size:28px">📸</div><h3>Влизане със снимка</h3><p>Снимай + въведи номер</p></button>
+          <button class="card action exit" data-action="exit-camera"><div style="font-size:28px">🚗</div><h3>Излизане със снимка</h3><p>Снимай + въведи номер</p></button>
+          <button class="card action check" data-action="open-check"><div style="font-size:28px">🔍</div><h3>Проверка</h3><p>Статус, престой, абонамент</p></button>
+          <button class="card action subs" data-action="open-subs"><div style="font-size:28px">⭐</div><h3>Абонати 🔒</h3><p>${activeSubs.length} активни${expiredSubs ? ' • ' + expiredSubs + ' изтекли' : ''}</p></button>
+        </div>
+        <div class="toolbar toolbar-manual">
+          <input id="manual-plate" class="field mono" type="text" maxlength="10" placeholder="Номер на колата" value="" />
+          <div class="inline-actions"><button class="success" data-action="manual-entry">Влизане</button><button class="danger" data-action="manual-exit">Излизане</button></div>
+          <button class="ghost" data-action="undo-last">Върни последното</button>
+        </div>
+        <div class="toolbar toolbar-actions">
+          <input id="search" class="field" type="text" placeholder="Търси по номер или име" value="${escapeAttr(ui.query)}" />
+          <button class="ghost" data-action="search-clear">Изчисти</button>
+          <button class="ghost" data-action="export-csv">CSV</button>
+          <button class="ghost" data-action="export-json">Backup</button>
+          <button class="ghost" data-action="import-json">Import</button>
+        </div>
+        <input id="import-file" type="file" accept=".json,application/json" style="display:none" />
+        <div id="status" class="status">${ui.toast || ''}</div>
+        <div class="tabs">
+          <button class="tab ${ui.tab==='active' ? 'active':''}" data-tab="active">Паркирани (${filteredActive.length})</button>
+          <button class="tab ${ui.tab==='log' ? 'active':''}" data-tab="log">История (${filteredLog.length})</button>
+        </div>
+        <div class="content">${ui.tab === 'active' ? renderActive(filteredActive) : renderLog(filteredLog)}</div>
+      </div>`;
+
+    wireDynamicControls();
+    renderSubsOnly();
+    if (ui.toast) {
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { ui.toast = ''; const el2 = document.getElementById('status'); if (el2) el2.innerHTML = ''; }, 5000);
+    }
+  }
+
+  function wireDynamicControls(){
+    const importFile = document.getElementById('import-file');
+    if (importFile && !importFile.dataset.bound) { importFile.dataset.bound = '1'; importFile.addEventListener('change', handleImportFile); }
+    const cameraFile = document.getElementById('camera-file');
+    if (cameraFile && !cameraFile.dataset.bound) { cameraFile.dataset.bound = '1'; cameraFile.addEventListener('change', handleCameraFile); }
+    const batchFile = document.getElementById('batch-file');
+    if (batchFile && !batchFile.dataset.bound) { batchFile.dataset.bound = '1'; batchFile.addEventListener('change', handleBatchFiles); }
+    const subFrom = document.getElementById('sub-from');
+    const subType = document.getElementById('sub-type');
+    if (subFrom && !subFrom.value) subFrom.value = todayLocal();
+    if (subType && !subType.value) subType.value = 'monthly';
+    recalcSubTo();
+  }
+
+  function renderActive(rows){
+    return `<div class="card panel"><div class="section-head"><div class="section-title">Активно паркирани</div><div class="hint">Таксата се обновява автоматично</div></div><div id="active-list" class="list">${rows.length ? rows.map(renderActiveCard).join('') : `<div class="empty">Няма паркирани коли</div>`}</div></div>`;
+  }
+
+  function renderActiveCard(car){
+    const elapsed = Date.now() - car.entryTime;
+    const sub = state.subscribers[car.plate];
+    const period = getActivePeriod(car.plate);
+    const subscriber = !!period;
+    const photo = car.entryPhoto || getPhoto(car.plate);
+    const photoCol = photo ? `<div class="item-photo-col"><img class="photo-thumb" src="${photo}" data-photo-open="${photo}" alt="Снимка"/></div>` : '';
+    return `<div class="item ${subscriber ? 'is-subscriber' : 'is-regular'}"><div class="item-row${photo ? ' with-photo' : ''}" style="margin-top:18px">${photoCol}<div><div class="plate mono">${escapeHtml(car.plate)}</div><div class="subnote">${subscriber ? '⭐ ' + escapeHtml(sub?.name || 'Абонат') + ' • до ' + formatDate(period.to) : '<span class="minor">Обикновен клиент</span>'}</div><div class="note">Влязла в ${formatTime(car.entryTime)} • ${formatDate(car.entryTime)}</div></div><div style="text-align:right"><div id="dur-${escapeAttr(car.plate)}" class="kpi">${formatDuration(elapsed)}</div><div class="note" id="fee-${escapeAttr(car.plate)}">${subscriber ? 'БЕЗПЛАТНО' : money(calcFee(elapsed))}</div><div class="inline-actions" style="justify-content:flex-end;margin-top:8px;flex-wrap:wrap;gap:4px"><button class="danger small" onclick="window.__parkingExit('${jsStr(car.plate)}')">Изведи</button><button class="ghost small" data-active-cancel="${escapeAttr(car.plate)}" title="Премахни без излизане 🔒">🗑 Отмени</button></div></div></div></div>`;
+  }
+
+  function renderLog(rows){
+    return `<div class="card panel"><div class="section-head"><div class="section-title">История</div><div class="inline-actions"><button class="ghost small" data-action="clear-log">Изчисти историята</button></div></div><div class="list">${rows.length ? rows.map(renderLogCard).join('') : `<div class="empty">Няма записи</div>`}</div></div>`;
+  }
+
+  function renderLogCard(row){
+    const photos = [];
+    if (row.entryPhoto) photos.push(`<img class="photo-thumb" src="${row.entryPhoto}" data-photo-open="${row.entryPhoto}" title="Влизане" alt="Влизане"/>`);
+    if (row.exitPhoto) photos.push(`<img class="photo-thumb" src="${row.exitPhoto}" data-photo-open="${row.exitPhoto}" title="Излизане" alt="Излизане"/>`);
+    const photoCol = photos.length ? `<div class="item-photo-col" style="display:flex;flex-direction:column;gap:4px">${photos.join('')}</div>` : '';
+    return `<div class="item ${row.subscriber ? 'is-subscriber' : 'is-regular'}"><div class="item-row${photos.length ? ' with-photo' : ''}" style="margin-top:18px">${photoCol}<div><div class="plate mono" style="font-size:24px">${escapeHtml(row.plate)}</div><div class="minor">${row.subscriber ? '⭐ ' + escapeHtml(row.subName || 'Абонат') : 'Обикновен клиент'}</div><div class="note">${escapeHtml(row.date)} • ${formatTime(row.entryTime)} → ${formatTime(row.exitTime)}</div></div><div style="text-align:right"><div class="pill ${row.subscriber ? 'pill-gold' : 'pill-green'}">${row.subscriber ? 'БЕЗПЛАТНО' : escapeHtml(row.fee + ' ' + CONFIG.currency)}</div><div class="note">${formatDuration(row.duration)}</div><div class="inline-actions" style="justify-content:flex-end;margin-top:8px;flex-wrap:wrap;gap:4px"><button class="ghost small" data-history-fill="${escapeAttr(row.plate)}">Филтър</button><button class="danger small" data-log-delete="${escapeAttr(row.id)}" title="Изтрий запис 🔒">🗑 Изтрий</button></div></div></div></div>`;
+  }
+
+  function renderSubsOnly(){
+    const target = document.getElementById('sub-list'); if (!target) return;
+    const rows = Object.values(state.subscribers).sort((a,b)=>a.plate.localeCompare(b.plate,'bg')).filter(s => !ui.subQuery || matchQuery(s.plate, ui.subQuery) || matchQuery(s.name || '', ui.subQuery));
+    target.innerHTML = rows.length ? rows.map(renderSubCard).join('') : `<div class="empty">Няма абонати по този филтър</div>`;
+  }
+
+  function renderSubCard(sub){
+    const activePeriod = getActivePeriod(sub.plate);
+    const periods = (sub.periods || []).slice().sort((a,b)=>b.from-a.from);
+    const pill = activePeriod ? `<span class="pill pill-gold">Активен • ${daysLeft(activePeriod.to)} дни</span>` : `<span class="pill pill-gray">Изтекъл</span>`;
+    return `<div class="subcard ${activePeriod ? 'active' : 'expired'}"><div class="item-row"><div><div class="plate mono" style="font-size:24px">${escapeHtml(sub.plate)}</div><div class="minor">${escapeHtml(sub.name || '')}</div></div><div style="text-align:right">${pill}<div class="note">${activePeriod ? 'до ' + formatDate(activePeriod.to) : 'няма активен период'}</div></div></div><div class="inline-actions" style="margin-top:10px;flex-wrap:wrap"><button class="button small" data-sub-renew="${escapeAttr(sub.plate)}">Поднови</button><button class="ghost small" data-sub-edit="${escapeAttr(sub.plate)}">Редактирай</button><button class="ghost small" data-sub-cancel="${escapeAttr(sub.plate)}">Отмени последния период</button><button class="danger small" data-sub-delete="${escapeAttr(sub.plate)}">Изтрий</button></div><div class="history-grid">${periods.map((p, i) => `<div class="history-row"><span>${escapeHtml(TYPE_LABELS[p.type] || p.type)}</span><span>${formatDate(p.from)} → ${formatDate(p.to)}</span><button class="ghost small" data-sub-period-delete="${escapeAttr(sub.plate)}" data-period-idx="${i}" style="min-height:0;padding:2px 8px;font-size:11px">✕</button></div>`).join('')}</div></div>`;
+  }
+
+  function registerManualWithMode(mode){
+    const input = document.getElementById('manual-plate');
+    const plate = normalizePlate(input?.value || '', false);
+    if (!plate) return showStatusErr('Въведи номер.');
+    if (!isValidPlate(plate)) return showStatusErr('Невалиден номер (мин. 4, макс. 10 знака, букви и цифри)');
+    processPlate(plate, mode);
+    if (input) input.value = '';
+  }
+
+  function processPlate(plate, mode, photoDataUrl){
+    const ts = Date.now();
+    if (mode === 'entry') {
+      if (state.active[plate]) { showStatusErr(`${plate} вече е паркирана от ${formatTime(state.active[plate].entryTime)}.`); return false; }
+      snapshot();
+      state.active[plate] = { plate, entryTime: ts };
+      if (photoDataUrl) { state.active[plate].entryPhoto = photoDataUrl; setPhoto(plate, photoDataUrl); }
+      // Автоматично записване в базата клиенти
+      ensureCustomer(plate, photoDataUrl);
+      persist();
+      const sub = getActivePeriod(plate) ? state.subscribers[plate] : null;
+      ui.toast = `<div class="status-box ok"><div class="status-title">ВЛИЗАНЕ РЕГИСТРИРАНО</div><div class="status-plate mono">${escapeHtml(plate)}</div><div class="status-meta">${escapeHtml(formatTime(ts) + (sub ? ' • ⭐ ' + (sub.name || 'Абонат') : ''))}</div></div>`;
+      render();
+      return true;
+    }
+    if (!state.active[plate]) { showStatusErr(`${plate} не е регистрирана като паркирана.`); return false; }
+    snapshot();
+    const entry = state.active[plate];
+    const duration = ts - entry.entryTime;
+    const subPeriod = getActivePeriod(plate);
+    const fee = subPeriod ? '0.00' : String(calcFee(duration));
+    const logRow = {id: plate + '-' + ts, plate, entryTime: entry.entryTime, exitTime: ts, duration, fee, date: formatDate(ts), subscriber: !!subPeriod, subName: subPeriod ? (state.subscribers[plate]?.name || '') : ''};
+    if (entry.entryPhoto) logRow.entryPhoto = entry.entryPhoto;
+    if (photoDataUrl) logRow.exitPhoto = photoDataUrl;
+    state.log.unshift(logRow);
+    delete state.active[plate];
+    deletePhoto(plate);
+    // Обнови статистика на клиента
+    updateCustomerOnExit(plate, duration, fee, !!subPeriod);
+    persist();
+    
+    // Допълнителна проверка - ако след save-а колата е още в localStorage, форсираме повторно записване
+    setTimeout(() => {
+      try {
+        const stored = JSON.parse(localStorage.getItem(CONFIG.storageKey) || '{}');
+        if (stored.active && stored.active[plate]) {
+          console.warn('[exit verify] колата ' + plate + ' е още в localStorage - повторно записване');
+          delete stored.active[plate];
+          stored._meta = { tabId: TAB_ID, savedAt: Date.now() };
+          localStorage.setItem(CONFIG.storageKey, JSON.stringify(stored));
+        }
+      } catch {}
+    }, 100);
+    ui.toast = `<div class="status-box ok"><div class="status-title">ИЗЛИЗАНЕ РЕГИСТРИРАНО</div><div class="status-plate mono">${escapeHtml(plate)}</div><div class="status-meta">${escapeHtml(formatTime(ts) + ' • ' + formatDuration(duration) + ' • ' + (fee === '0.00' ? 'БЕЗПЛАТНО' : money(fee)))}</div></div>`;
+    render();
+    return true;
+  }
+
+  window.__parkingExit = (plate) => processPlate(plate, 'exit');
+
+  function doCheckFromInput(){
+    const plate = normalizePlate((document.getElementById('check-plate')?.value || ''), false);
+    if (!plate) return showCheck(`<div class="status-box err">Въведи номер.</div>`);
+    const sub = state.subscribers[plate];
+    const period = getActivePeriod(plate);
+    if (state.active[plate]) {
+      const entryTime = state.active[plate].entryTime;
+      const elapsed = Date.now() - entryTime;
+      return showCheck(`<div class="status-box ok"><div class="status-title">РЕДОВНО ПАРКИРАНА</div><div class="status-plate mono">${escapeHtml(plate)}</div><div class="status-meta">Влязла в ${formatTime(entryTime)} • ${formatDate(entryTime)}</div><div class="status-meta">Престой: ${formatDuration(elapsed)} • ${period ? 'БЕЗПЛАТНО' : money(calcFee(elapsed))}</div>${sub ? `<div class="note">⭐ ${escapeHtml(sub.name || 'Абонат')} ${period ? '• активен до ' + formatDate(period.to) : '• изтекъл'}</div>` : ''}</div>`);
+    }
+    const recent = state.log.find(x => x.plate === plate);
+    if (recent) {
+      return showCheck(`<div class="status-box warn"><div class="status-title">ВЕЧЕ Е НАПУСНАЛА</div><div class="status-plate mono">${escapeHtml(plate)}</div><div class="status-meta">${formatTime(recent.entryTime)} → ${formatTime(recent.exitTime)} • ${formatDuration(recent.duration)}</div><div class="status-meta">${recent.subscriber ? 'БЕЗПЛАТНО' : money(recent.fee)}</div>${sub ? `<div class="note">⭐ ${escapeHtml(sub.name || 'Абонат')} ${period ? '• активен до ' + formatDate(period.to) : '• изтекъл'}</div>` : ''}</div>`);
+    }
+    showCheck(`<div class="status-box err"><div class="status-title">НЕ Е В СИСТЕМАТА</div><div class="status-plate mono">${escapeHtml(plate)}</div><div class="status-meta">${sub ? 'Има абонат, но няма активен запис за влизане.' : 'Тази кола не е намерена.'}</div>${sub ? `<div class="note">⭐ ${escapeHtml(sub.name || 'Абонат')} ${period ? '• активен до ' + formatDate(period.to) : '• изтекъл'}</div>` : ''}</div>`);
+  }
+
+  function showCheck(html){ const target = document.getElementById('check-result'); if (target) target.innerHTML = html; }
+
+  function addSubscriber(){
+    const plate = normalizePlate((document.getElementById('sub-plate')?.value || ''), false);
+    const name = (document.getElementById('sub-name')?.value || '').trim();
+    const type = document.getElementById('sub-type')?.value || 'monthly';
+    const from = document.getElementById('sub-from')?.value;
+    const to = document.getElementById('sub-to')?.value;
+    if (!plate) return setSubMsg('Въведи номер.', true);
+    if (!isValidPlate(plate)) return setSubMsg('Невалиден номер (мин. 4, макс. 10 знака, букви и цифри)', true);
+    if (!from || !to) return setSubMsg('Избери дати.', true);
+    const fromTs = dateStartTs(from), toTs = dateEndTs(to);
+    if (toTs <= fromTs) return setSubMsg('Крайната дата трябва да е след началната.', true);
+    snapshot();
+    if (!state.subscribers[plate]) state.subscribers[plate] = { plate, name:'', periods:[] };
+    if (name) state.subscribers[plate].name = name;
+    const periods = state.subscribers[plate].periods;
+    const overlap = periods.some(p => !(toTs < p.from || fromTs > p.to));
+    if (overlap) return setSubMsg('Има застъпване с друг период. Първо коригирай стария.', true);
+    periods.push({ from: fromTs, to: toTs, type }); periods.sort((a,b)=>a.from-b.from);
+    persist();
+    setSubMsg(`Записан: ${plate} • ${TYPE_LABELS[type]} до ${formatDate(toTs)}`, false);
+    clearSubFormKeepType();
+    render();
+  }
+
+  function cancelLastSubscriberPeriod(plate){
+    const sub = state.subscribers[plate];
+    if (!sub || !sub.periods?.length) return showStatusErr('Няма период за премахване.');
+    if (!confirm(`Премахване на последния период за ${plate}?`)) return;
+    snapshot(); sub.periods.pop(); if (!sub.periods.length && !sub.name) delete state.subscribers[plate]; persist(); showStatusWarn(`Последният период за ${plate} е премахнат.`); render();
+  }
+
+  function editSubscriber(plate){
+    const sub = state.subscribers[plate];
+    if (!sub) return showStatusErr('Абонатът не е намерен.');
+    const newName = prompt(`Име / апартамент за ${plate}:`, sub.name || '');
+    if (newName === null) return;
+    const newPlateRaw = prompt('Номер на колата (остави същия или смени):', plate);
+    if (newPlateRaw === null) return;
+    const newPlate = normalizePlate(newPlateRaw, false);
+    if (!newPlate) return showStatusErr('Невалиден номер (мин. 4 знака).');
+    if (!isValidPlate(newPlate)) return showStatusErr('Невалиден номер (мин. 4, макс. 10 знака, букви и цифри)');
+    if (newPlate !== plate && state.subscribers[newPlate]) return showStatusErr(`Вече има абонат с номер ${newPlate}.`);
+    snapshot();
+    sub.name = newName.trim();
+    if (newPlate !== plate) {
+      sub.plate = newPlate;
+      state.subscribers[newPlate] = sub;
+      delete state.subscribers[plate];
+    }
+    persist();
+    showStatusWarn(`Абонатът е редактиран: ${newPlate}${sub.name ? ' • ' + sub.name : ''}`);
+    render();
+  }
+
+  function deleteSubscriber(plate){
+    const sub = state.subscribers[plate];
+    if (!sub) return showStatusErr('Абонатът не е намерен.');
+    if (!confirm(`ИЗТРИВАНЕ на абонат ${plate}${sub.name ? ' (' + sub.name + ')' : ''}?\n\nВсички периоди ще бъдат премахнати. Това не може да се върне освен с "Върни последното".`)) return;
+    snapshot();
+    delete state.subscribers[plate];
+    persist();
+    showStatusWarn(`Абонатът ${plate} е изтрит.`);
+    render();
+  }
+
+  function deleteSubscriberPeriod(plate, displayIdx){
+    const sub = state.subscribers[plate];
+    if (!sub?.periods?.length) return showStatusErr('Няма период.');
+    // в renderSubCard периодите са сортирани по b.from-a.from (най-новите отгоре)
+    const sorted = sub.periods.slice().sort((a,b)=>b.from-a.from);
+    const target = sorted[displayIdx];
+    if (!target) return showStatusErr('Периодът не е намерен.');
+    if (!confirm(`Премахване на период ${formatDate(target.from)} → ${formatDate(target.to)}?`)) return;
+    snapshot();
+    const realIdx = sub.periods.findIndex(p => p.from === target.from && p.to === target.to && p.type === target.type);
+    if (realIdx >= 0) sub.periods.splice(realIdx, 1);
+    if (!sub.periods.length && !sub.name) delete state.subscribers[plate];
+    persist();
+    showStatusWarn('Периодът е премахнат.');
+    render();
+  }
+
+  // Изтриване на запис от историята (с парола)
+  function deleteLogEntry(id){
+    const row = state.log.find(r => r.id === id);
+    if (!row) return showStatusErr('Записът не е намерен.');
+    if (!requirePassword('🔒 Парола за изтриване на запис от историята:')) return;
+    if (!confirm(`Изтриване на запис: ${row.plate}\n${row.date} • ${formatTime(row.entryTime)} → ${formatTime(row.exitTime)}\nТакса: ${row.subscriber ? 'БЕЗПЛАТНО' : money(row.fee)}\n\nМоже да го върнеш с "Върни последното".`)) return;
+    snapshot();
+    state.log = state.log.filter(r => r.id !== id);
+    persist();
+    showStatusWarn(`Записът ${row.plate} е изтрит.`);
+    render();
+  }
+
+  // Отмяна на активно паркиране без таксуване (с парола)
+  // Използва се когато колата е влязла по грешка или е излязла без да бъде регистрирана
+  function cancelActiveEntry(plate){
+    const car = state.active[plate];
+    if (!car) return showStatusErr('Колата не е в системата.');
+    if (!requirePassword('🔒 Парола за отмяна на влизане:')) return;
+    const elapsed = Date.now() - car.entryTime;
+    if (!confirm(`Отмяна на влизане: ${plate}\nВлязла в ${formatTime(car.entryTime)} • ${formatDate(car.entryTime)}\nПрестой: ${formatDuration(elapsed)}\n\n⚠️ Колата ще бъде премахната БЕЗ такса и БЕЗ запис в историята.\n\nПродължи?`)) return;
+    snapshot();
+    delete state.active[plate];
+    persist();
+    showStatusWarn(`Влизането на ${plate} е отменено.`);
+    render();
+  }
+
+  function undoLast(){
+    const prev = state.snapshots.pop();
+    if (!prev) return showStatusWarn('Няма какво да върна.');
+    const data = safeJsonParse(prev, null);
+    if (!data) return showStatusErr('Снимката за връщане е повредена.');
+    state.active = data.active || {}; state.log = data.log || []; state.subscribers = data.subscribers || {}; state.customers = data.customers || {};
+    saveState(); showStatusWarn('Последното действие е върнато.'); render();
+  }
+
+  function clearLog(){
+    if (!state.log.length) return showStatusWarn('Историята е празна.');
+    if (!requirePassword('🔒 Парола за изчистване на цялата история:')) return;
+    if (!confirm(`⚠️ ВНИМАНИЕ!\n\nЩе изтриеш ${state.log.length} записа от историята.\nВсички приходи и данни за минали клиенти ще се загубят.\n\n💡 Препоръка: натисни "CSV" или "Backup" преди да изчистиш, за да си запазиш данните.\n\nПродължи?`)) return;
+    snapshot(); state.log = []; persist(); showStatusWarn('Историята е изчистена. Можеш да я върнеш с "Върни последното".'); render();
+  }
+
+  function recalcSubTo(){
+    const type = document.getElementById('sub-type'), from = document.getElementById('sub-from'), to = document.getElementById('sub-to');
+    if (!type || !from || !to) return;
+    if (!from.value) from.value = todayLocal();
+    if (type.value === 'custom') return;
+    to.value = addMonthsLocal(from.value, TYPE_MONTHS[type.value]);
+  }
+
+  function setSubFrom(value){ const from = document.getElementById('sub-from'); if (!from) return; from.value = value; recalcSubTo(); }
+  function nextRenewalDate(plate){ const sub = state.subscribers[plate]; if (!sub?.periods?.length) return todayLocal(); const last = sub.periods.slice().sort((a,b)=>b.to-a.to)[0]; return dateToLocalInput(new Date(last.to + 86400000)); }
+  function setSubMsg(msg, isErr){ const el = document.getElementById('sub-msg'); if (!el) return; el.style.color = isErr ? '#ffb7b7' : '#77f0c5'; el.textContent = msg; }
+  function clearSubFormKeepType(){ const plate = document.getElementById('sub-plate'), name = document.getElementById('sub-name'), from = document.getElementById('sub-from'); if (plate) plate.value = ''; if (name) name.value = ''; if (from) from.value = todayLocal(); recalcSubTo(); }
+
+  // ─── База КЛИЕНТИ (история на всички номера + контакти) ────
+  function ensureCustomer(plate, photoDataUrl){
+    if (!state.customers) state.customers = {};
+    if (!state.customers[plate]) {
+      state.customers[plate] = {
+        plate,
+        firstSeen: Date.now(),
+        lastSeen: Date.now(),
+        visits: 0,
+        totalPaid: 0,
+        name: '',
+        phone: '',
+        carInfo: '',
+        notes: '',
+      };
+    }
+    state.customers[plate].lastSeen = Date.now();
+    if (photoDataUrl && !state.customers[plate].photo) {
+      state.customers[plate].photo = photoDataUrl;
+    }
+  }
+
+  function updateCustomerOnExit(plate, duration, fee, isSubscriber){
+    if (!state.customers) state.customers = {};
+    if (!state.customers[plate]) ensureCustomer(plate);
+    const c = state.customers[plate];
+    c.visits = (c.visits || 0) + 1;
+    if (!isSubscriber) c.totalPaid = (c.totalPaid || 0) + parseFloat(fee || '0');
+    c.lastSeen = Date.now();
+  }
+
+  function saveCustomerInfo(plate, fields){
+    if (!state.customers[plate]) ensureCustomer(plate);
+    const c = state.customers[plate];
+    if (typeof fields.name === 'string') c.name = fields.name.trim();
+    if (typeof fields.phone === 'string') c.phone = fields.phone.trim();
+    if (typeof fields.carInfo === 'string') c.carInfo = fields.carInfo.trim();
+    if (typeof fields.notes === 'string') c.notes = fields.notes.trim();
+    persist();
+  }
+
+  function getCustomer(plate){
+    return (state.customers && state.customers[plate]) || null;
+  }
+
+  // Рендиране на списъка с клиенти
+  let customerSearchQuery = '';
+  function renderCustomerList(){
+    const list = document.getElementById('cust-list');
+    if (!list) return;
+    if (!state.customers) state.customers = {};
+    const allCustomers = Object.values(state.customers);
+    const q = (customerSearchQuery || '').toLowerCase();
+    const filtered = q ? allCustomers.filter(c =>
+      (c.plate || '').toLowerCase().includes(q) ||
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.phone || '').toLowerCase().includes(q)
+    ) : allCustomers;
+    filtered.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty">${allCustomers.length ? 'Няма съвпадения' : 'Базата е празна. Първият номер ще се добави автоматично при влизане.'}</div>`;
+      return;
+    }
+
+    list.innerHTML = `<div style="font-size:11px;color:#95a3b8;margin-bottom:8px">${filtered.length} ${filtered.length === 1 ? 'клиент' : 'клиента'}${allCustomers.length !== filtered.length ? ' от ' + allCustomers.length : ''}</div>` +
+      filtered.map(c => {
+        const isSub = isSubscriber(c.plate);
+        const sub = state.subscribers[c.plate];
+        const period = sub ? getActivePeriod(c.plate) : null;
+        const subBadge = isSub ? `<span class="pill pill-gold" style="font-size:10px;margin-left:6px">⭐ Абонат</span>` : '';
+        const phoneBtn = c.phone ? `<a href="tel:${escapeAttr(c.phone)}" class="ghost small" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">📞 ${escapeHtml(c.phone)}</a>` : '';
+        return `<div class="item ${isSub ? 'is-subscriber' : 'is-regular'}" style="margin-bottom:8px">
+          <div style="margin-top:18px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+              <div style="flex:1;min-width:0">
+                <div class="plate mono" style="font-size:22px">${escapeHtml(c.plate)}${subBadge}</div>
+                ${c.name ? `<div style="font-size:13px;margin-top:4px;color:#e7eaf0"><strong>${escapeHtml(c.name)}</strong></div>` : ''}
+                ${c.carInfo ? `<div class="minor">🚗 ${escapeHtml(c.carInfo)}</div>` : ''}
+                ${c.notes ? `<div class="minor" style="margin-top:2px">📝 ${escapeHtml(c.notes)}</div>` : ''}
+                <div class="note" style="margin-top:6px">
+                  Посещения: <strong>${c.visits || 0}</strong> • Платил: <strong>${money((c.totalPaid || 0).toFixed(2))}</strong>
+                  ${c.lastSeen ? `<br>Последно: ${formatDate(c.lastSeen)}` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="inline-actions" style="margin-top:10px;flex-wrap:wrap;gap:6px">
+              ${phoneBtn}
+              <button class="ghost small" data-cust-edit="${escapeAttr(c.plate)}">✏️ Редактирай</button>
+              ${(c.name || c.phone || c.carInfo || c.notes) ? `<button class="danger small" data-cust-delete="${escapeAttr(c.plate)}">🗑 Изчисти данни</button>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+  }
+
+  function editCustomer(plate){
+    if (!state.customers[plate]) ensureCustomer(plate);
+    const c = state.customers[plate];
+    const name = prompt(`Име на собственика на ${plate}:`, c.name || '');
+    if (name === null) return;
+    const phone = prompt(`Телефон (за връзка):`, c.phone || '');
+    if (phone === null) return;
+    const carInfo = prompt(`Марка и модел кола (напр. "Audi A4 черно"):`, c.carInfo || '');
+    if (carInfo === null) return;
+    const notes = prompt(`Бележки (свободен текст):`, c.notes || '');
+    if (notes === null) return;
+    snapshot();
+    saveCustomerInfo(plate, { name, phone, carInfo, notes });
+    showStatusWarn(`Данните за ${plate} са обновени.`);
+    renderCustomerList();
+  }
+
+  function clearCustomerInfo(plate){
+    const c = state.customers[plate];
+    if (!c) return;
+    if (!requirePassword('🔒 Парола за изчистване на данни:')) return;
+    if (!confirm(`Изчистване на контактните данни за ${plate}?\n\nСамо: име, телефон, марка кола, бележки.\nЗапазват се: посещенията и брояча.`)) return;
+    snapshot();
+    c.name = ''; c.phone = ''; c.carInfo = ''; c.notes = '';
+    persist();
+    showStatusWarn(`Данните за ${plate} са изчистени.`);
+    renderCustomerList();
+  }
+
+  function getActivePeriod(plate){
+    const sub = state.subscribers[plate];
+    if (!sub?.periods?.length) return null;
+    const now = Date.now();
+    return sub.periods.filter(p => p.from <= now && p.to >= now).sort((a,b)=>b.from-a.from)[0] || null;
+  }
+  function isSubscriber(plate){ return !!getActivePeriod(plate); }
+  function snapshot(){ const snap = JSON.stringify({ active: state.active, log: state.log, subscribers: state.subscribers, customers: state.customers }); state.snapshots.push(snap); if (state.snapshots.length > CONFIG.snapshotLimit) state.snapshots.shift(); }
+  // === Защита от множество табове ===
+  // Всеки таб има уникален ID. Когато един таб запише, останалите се синхронизират автоматично.
+  const TAB_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  let lastSaveTimestamp = 0;
+
+  function persist(){ trimLogPhotos(50); saveState(); }
+
+  function loadState(){
+    const raw = safeJsonParse(localStorage.getItem(CONFIG.storageKey), null);
+    return raw && typeof raw === 'object' ? { active: raw.active || {}, log: Array.isArray(raw.log) ? raw.log : [], subscribers: raw.subscribers || {}, customers: raw.customers || {}, snapshots: Array.isArray(raw.snapshots) ? raw.snapshots : [], photos: raw.photos || {} } : { active:{}, log:[], subscribers:{}, customers:{}, snapshots:[], photos:{} };
+  }
+  function saveState(){
+    lastSaveTimestamp = Date.now();
+    const baseWrapper = { 
+      _meta: { tabId: TAB_ID, savedAt: lastSaveTimestamp },
+      active: state.active, 
+      log: state.log, 
+      subscribers: state.subscribers, 
+      customers: state.customers, 
+      snapshots: state.snapshots,
+    };
+    
+    // Опитваме 4 нива fallback - първо с всички данни, после без снимки, после без история...
+    const attempts = [
+      () => ({ ...baseWrapper, photos: state.photos || {} }),
+      () => ({ ...baseWrapper, photos: {} }),  // без активни снимки
+      () => {
+        // без снимки в историята
+        const logSlim = state.log.map(r => { const c = {...r}; delete c.entryPhoto; delete c.exitPhoto; return c; });
+        return { ...baseWrapper, log: logSlim, photos: {} };
+      },
+      () => {
+        // без снимки + само последните 100 записа от историята
+        const logSlim = state.log.slice(0, 100).map(r => { const c = {...r}; delete c.entryPhoto; delete c.exitPhoto; return c; });
+        return { ...baseWrapper, log: logSlim, photos: {}, snapshots: [] };
+      }
+    ];
+    
+    let saved = false, lastError = null;
+    for (let i = 0; i < attempts.length; i++) {
+      try {
+        const wrapper = attempts[i]();
+        const payload = JSON.stringify(wrapper);
+        localStorage.setItem(CONFIG.storageKey, payload);
+        // VERIFICATION - четем обратно за да сме сигурни
+        const verify = safeJsonParse(localStorage.getItem(CONFIG.storageKey), null);
+        if (!verify || verify._meta?.savedAt !== lastSaveTimestamp) {
+          throw new Error('verification failed');
+        }
+        saved = true;
+        // Ако сме били под fallback, обнови state-а
+        if (i >= 1) {
+          state.photos = {};
+          if (i >= 2) {
+            for (const r of state.log) { delete r.entryPhoto; delete r.exitPhoto; }
+            showStatusWarn('⚠️ Storage пълен — снимките изтрити (последните 100 записа са запазени)');
+          } else {
+            showStatusWarn('⚠️ Storage близо до лимит — снимките на активни коли изтрити');
+          }
+        }
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(`[saveState] attempt ${i+1} failed:`, err.message);
+      }
+    }
+    
+    if (!saved) {
+      // КРИТИЧНА ГРЕШКА - данните НЕ СА ЗАПАЗЕНИ
+      const errMsg = '🚨 СПЕШНО! Данните НЕ се запазват. Натисни Backup веднага и изчисти историята! Грешка: ' + (lastError?.message || 'unknown');
+      showStatusErr(errMsg);
+      alert(errMsg);
+    }
+  }
+
+  // Синхронизация между табове - когато друг таб запише данни, презареждаме
+  window.addEventListener('storage', (e) => {
+    if (e.key !== CONFIG.storageKey) return;
+    if (!e.newValue) return;
+    try {
+      const data = JSON.parse(e.newValue);
+      // Ако промяната е от ДРУГ таб (не от този) - презареждаме
+      if (data._meta?.tabId && data._meta.tabId !== TAB_ID) {
+        console.log('[storage sync] другият таб направи промяна - презареждам');
+        const fresh = loadState();
+        state.active = fresh.active;
+        state.log = fresh.log;
+        state.subscribers = fresh.subscribers;
+        state.customers = fresh.customers;
+        state.photos = fresh.photos;
+        // НЕ презаписваме snapshots - те са локални за всеки таб
+        render();
+      }
+    } catch {}
+  });
+
+  // Преди отваряне - провери дали друг таб има по-нови данни
+  window.addEventListener('focus', () => {
+    const fresh = loadState();
+    const freshSavedAt = (() => {
+      try { return JSON.parse(localStorage.getItem(CONFIG.storageKey) || '{}')._meta?.savedAt || 0; }
+      catch { return 0; }
+    })();
+    if (freshSavedAt > lastSaveTimestamp) {
+      console.log('[focus sync] открити по-нови данни - презареждам');
+      state.active = fresh.active;
+      state.log = fresh.log;
+      state.subscribers = fresh.subscribers;
+      state.customers = fresh.customers;
+      state.photos = fresh.photos;
+      lastSaveTimestamp = freshSavedAt;
+      render();
+    }
+  });
+
+
+  function exportCSV(){
+    const header = ['Номер','Абонат','Име','Дата','Влизане','Излизане','Престой','Такса'];
+    const lines = state.log.map(r => [csvCell(r.plate), csvCell(r.subscriber ? 'ДА' : 'НЕ'), csvCell(r.subName || ''), csvCell(r.date), csvCell(formatTime(r.entryTime)), csvCell(formatTime(r.exitTime)), csvCell(formatDuration(r.duration)), csvCell(r.subscriber ? 'БЕЗПЛАТНО' : money(r.fee))].join(','));
+    downloadFile('\uFEFF' + [header.join(','), ...lines].join('\n'), `parking_${todayLocal()}.csv`, 'text/csv;charset=utf-8'); showStatusWarn('CSV е изтеглен.');
+  }
+  function exportJSON(){ downloadFile(JSON.stringify({ exportedAt: new Date().toISOString(), data: { active: state.active, log: state.log, subscribers: state.subscribers, customers: state.customers, photos: state.photos || {} } }, null, 2), `parking_backup_${todayLocal()}.json`, 'application/json'); showStatusWarn('Backup JSON е изтеглен.'); }
+  function triggerImport(){ document.getElementById('import-file')?.click(); }
+
+  function triggerCamera(mode){
+    pendingPhoto.mode = mode;
+    const input = document.getElementById('camera-file');
+    if (!input) return showStatusErr('Камерата не е достъпна.');
+    input.value = '';
+    input.click();
+  }
+
+  function handleCameraFile(e){
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!/^image\//.test(file.type)) return showStatusErr('Файлът не е снимка.');
+    const reader = new FileReader();
+    reader.onload = () => {
+      compressImage(String(reader.result || ''), 900, 0.65).then(dataUrl => {
+        if (pendingPhoto.mode === 'check') {
+          const preview = document.getElementById('check-photo-preview');
+          if (preview) { preview.src = dataUrl; preview.style.display = 'block'; }
+          const plateInput = document.getElementById('check-plate');
+          if (plateInput) {
+            plateInput.value = '';
+            plateInput.placeholder = 'AI разпознава...';
+          }
+          runAIForInput(dataUrl, 'check-plate', () => { if (plateInput) plateInput.placeholder = 'CA1234KM'; });
+        } else if (pendingPhoto.mode === 'subscriber') {
+          const plateInput = document.getElementById('sub-plate');
+          const msg = document.getElementById('sub-msg');
+          if (plateInput) { plateInput.value = ''; plateInput.placeholder = 'AI разпознава...'; }
+          if (msg) { msg.style.color = '#ffd77d'; msg.textContent = '🤖 AI разпознава номера...'; }
+          runAIForInput(dataUrl, 'sub-plate', (plate) => {
+            if (plateInput) plateInput.placeholder = 'CA1234KM';
+            if (msg) {
+              if (plate) { msg.style.color = '#77f0c5'; msg.textContent = '✓ Разпознат: ' + plate; }
+              else { msg.style.color = '#ffb7b7'; msg.textContent = '⚠️ Не се вижда номер. Въведи ръчно.'; }
+            }
+          });
+        } else {
+          pendingPhoto.dataUrl = dataUrl;
+          openPhotoModal();
+          // Пусни OCR паралелно - но с ясно съобщение че е приблизителна
+          runAIForInput(dataUrl, 'photo-plate', (plate) => {
+            const msg = document.getElementById('photo-msg');
+            const input = document.getElementById('photo-plate');
+            if (msg) {
+              if (plate) { 
+                msg.style.color = '#ffd77d'; 
+                msg.innerHTML = '🤖 OCR предложение: <strong>' + escapeHtml(plate) + '</strong><br>⚠️ OCR често греши! Сравни със снимката и коригирай ако е нужно.';
+                // Маркирай полето за да се вижда че трябва проверка
+                if (input) { input.style.borderColor = '#f59e0b'; input.select(); }
+              }
+              else { 
+                msg.style.color = '#77f0c5'; 
+                msg.innerHTML = '📝 <strong>Въведи номера ръчно</strong> — разгледай снимката горе.';
+                if (input) { input.style.borderColor = '#10b981'; input.focus(); }
+              }
+            }
+          });
+        }
+      }).catch(() => showStatusErr('Не успях да обработя снимката.'));
+    };
+    reader.onerror = () => showStatusErr('Грешка при четене на снимката.');
+    reader.readAsDataURL(file);
+  }
+
+  // ─── ЛОКАЛНО OCR РАЗПОЗНАВАНЕ НА НОМЕР (Tesseract.js) ───────
+  let lastAIError = '';
+  let tesseractWorker = null;
+
+  async function getTesseractWorker(){
+    if (tesseractWorker) return tesseractWorker;
+    if (typeof Tesseract === 'undefined') {
+      lastAIError = 'OCR библиотеката не е заредена (нужен интернет при първо зареждане)';
+      return null;
+    }
+    try {
+      tesseractWorker = await Tesseract.createWorker('eng', 1);
+      // Всички главни латински букви + цифри (включително D, I, Q и т.н. за чужди номера)
+      await tesseractWorker.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        // Mode 11 = SPARSE_TEXT - намира текст навсякъде без структура
+        // По-добро от 7 (single line) когато табелата е на части
+        tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT || '11',
+      });
+      return tesseractWorker;
+    } catch (err) {
+      lastAIError = 'OCR инициализация грешка: ' + err.message;
+      return null;
+    }
+  }
+
+  // Препроцесинг - ч/б + контраст за по-добро OCR
+  async function preprocessForOCR(dataUrl){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Resize ако е много голяма
+          const maxW = 1200;
+          const ratio = img.width > maxW ? maxW / img.width : 1;
+          const w = Math.round(img.width * ratio);
+          const h = Math.round(img.height * ratio);
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(img, 0, 0, w, h);
+          
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const pixels = imgData.data;
+          
+          // Grayscale + contrast boost
+          for (let i = 0; i < pixels.length; i += 4) {
+            const gray = 0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2];
+            // Adaptive threshold за по-добър контраст
+            let v = gray;
+            if (v < 85) v = 0;
+            else if (v > 170) v = 255;
+            else v = Math.max(0, Math.min(255, (v - 85) * 3));
+            pixels[i] = pixels[i+1] = pixels[i+2] = v;
+          }
+          ctx.putImageData(imgData, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.95));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = () => reject(new Error('Грешка при зареждане'));
+      img.src = dataUrl;
+    });
+  }
+
+  // Нормализира кирилица към латиница (важно за OCR-резултати и ръчно въвеждане)
+  const CYRILLIC_TO_LATIN = {'А':'A','В':'B','Е':'E','К':'K','М':'M','Н':'H','О':'O','Р':'P','С':'C','Т':'T','У':'Y','Х':'X','а':'A','в':'B','е':'E','к':'K','м':'M','н':'H','о':'O','р':'P','с':'C','т':'T','у':'Y','х':'X'};
+  
+  function cyrillicToLatin(s){
+    return String(s || '').split('').map(ch => CYRILLIC_TO_LATIN[ch] || ch).join('');
+  }
+
+  // Извлечи валиден кандидат за номер от OCR текст
+  function extractPlateCandidate(text){
+    if (!text) return null;
+    const clean = (s) => cyrillicToLatin(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    // Разбий по всякакви whitespace + специални
+    const tokens = text.split(/[\s\n\r\t.,:;!?|/\\()\[\]{}"'`~*]+/).map(clean).filter(Boolean);
+    
+    // Събирай съседни токени — OCR често разделя "A" и "0233 PB" на части
+    const combined = [];
+    combined.push(...tokens); // оригинални
+    // Залепи съседни (2 на 2) и (3 на 3)
+    for (let i = 0; i < tokens.length - 1; i++) {
+      combined.push(tokens[i] + tokens[i+1]);
+    }
+    for (let i = 0; i < tokens.length - 2; i++) {
+      combined.push(tokens[i] + tokens[i+1] + tokens[i+2]);
+    }
+    
+    // Уникални кандидати
+    const unique = [...new Set(combined)];
+    
+    // Филтри: 4-10 знака, има и букви и цифри, не са "DETAILING" и подобни
+    const valid = unique.filter(l => {
+      if (l.length < 4 || l.length > 10) return false;
+      if (!/[A-Z]/.test(l) || !/\d/.test(l)) return false;
+      return true;
+    });
+    
+    if (valid.length === 0) return null;
+    
+    // Скори кандидатите
+    // 1. Предпочитай 6-8 знака (типично paste plate)
+    // 2. Предпочитай букви в началото (типично за европейски номера)
+    // 3. Предпочитай съотношение букви:цифри ~ 3:4 до 4:3
+    const scored = valid.map(l => {
+      let score = 0;
+      // Length preference
+      const lenDiff = Math.abs(l.length - 7);
+      score -= lenDiff * 10;
+      // Letters at start (most European plates start with letters)
+      if (/^[A-Z]/.test(l)) score += 15;
+      // Mix ratio - letter/digit balance
+      const letters = (l.match(/[A-Z]/g) || []).length;
+      const digits = (l.match(/\d/g) || []).length;
+      const ratio = Math.min(letters, digits) / Math.max(letters, digits);
+      score += ratio * 20;
+      // Pattern matching - БГ format CA1234KM or A1234BC
+      if (/^[A-Z]{1,2}\d{3,4}[A-Z]{1,2}$/.test(l)) score += 30;
+      // Digits in middle
+      if (/[A-Z]\d/.test(l)) score += 5;
+      return { plate: l, score };
+    });
+    
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0].plate;
+  }
+
+  async function recognizePlateAI(dataUrl){
+    lastAIError = '';
+    if (!CONFIG.aiEnabled) { lastAIError = 'OCR изключен'; return null; }
+    try {
+      const worker = await getTesseractWorker();
+      if (!worker) return null;
+
+      // Опит 1: с препроцес (ч/б + контраст), SPARSE_TEXT mode
+      const processed = await preprocessForOCR(dataUrl);
+      let result = await worker.recognize(processed);
+      let text = result.data.text || '';
+      console.log('[OCR v1 sparse+prep] Raw:', JSON.stringify(text), 'confidence:', result.data.confidence);
+      let plate = extractPlateCandidate(text);
+      
+      // Опит 2: без препроцес, SPARSE_TEXT
+      if (!plate) {
+        result = await worker.recognize(dataUrl);
+        text = result.data.text || '';
+        console.log('[OCR v2 sparse+orig] Raw:', JSON.stringify(text), 'confidence:', result.data.confidence);
+        plate = extractPlateCandidate(text);
+      }
+      
+      // Опит 3: SINGLE_LINE с препроцес (за случаи когато табелата е на един ред)
+      if (!plate) {
+        try {
+          await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE || '7' });
+          result = await worker.recognize(processed);
+          text = result.data.text || '';
+          console.log('[OCR v3 line+prep] Raw:', JSON.stringify(text), 'confidence:', result.data.confidence);
+          plate = extractPlateCandidate(text);
+        } finally {
+          await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT || '11' });
+        }
+      }
+      
+      // Опит 4: SINGLE_BLOCK с оригинала
+      if (!plate) {
+        try {
+          await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK || '6' });
+          result = await worker.recognize(dataUrl);
+          text = result.data.text || '';
+          console.log('[OCR v4 block+orig] Raw:', JSON.stringify(text), 'confidence:', result.data.confidence);
+          plate = extractPlateCandidate(text);
+        } finally {
+          await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT || '11' });
+        }
+      }
+      
+      if (!plate) {
+        lastAIError = 'OCR не намери номер. Снимай по-близо/ясно или въведи ръчно.';
+        return null;
+      }
+      
+      console.log('[OCR] Final plate:', plate);
+      return plate;
+    } catch (err) {
+      lastAIError = 'OCR грешка: ' + (err.message || err);
+      console.error('[OCR]', err);
+      return null;
+    }
+  }
+
+  async function runAIForInput(dataUrl, inputId, cb){
+    const plate = await recognizePlateAI(dataUrl);
+    const inp = document.getElementById(inputId);
+    // Не презаписвай ако потребителят вече е въвел нещо
+    if (inp && plate && !inp.value.trim()) inp.value = plate;
+    if (typeof cb === 'function') cb(plate);
+  }
+
+  function compressImage(dataUrl, maxWidth, quality){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
+          const w = Math.round(img.width * ratio);
+          const h = Math.round(img.height * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch (err) { reject(err); }
+      };
+      img.onerror = () => reject(new Error('img load failed'));
+      img.src = dataUrl;
+    });
+  }
+
+  function openPhotoModal(){
+    const title = document.getElementById('photo-modal-title');
+    const preview = document.getElementById('photo-preview');
+    const plate = document.getElementById('photo-plate');
+    const msg = document.getElementById('photo-msg');
+    if (title) title.textContent = pendingPhoto.mode === 'entry' ? '📸 Влизане' : '🚗 Излизане';
+    if (preview) preview.src = pendingPhoto.dataUrl;
+    if (plate) { 
+      plate.value = '';
+      plate.style.borderColor = ''; // reset border
+    }
+    if (msg) { 
+      msg.innerHTML = '📝 Въведи номера от снимката или изчакай OCR предложение (5-10 сек)...'; 
+      msg.style.color = '#95a3b8'; 
+    }
+    openModal('modal-photo');
+    // Фокусирай полето веднага - потребителят може да пише още докато OCR върви
+    setTimeout(() => plate?.focus(), 100);
+  }
+
+  function confirmPhotoEntry(){
+    const plateInput = document.getElementById('photo-plate');
+    const plate = normalizePlate(plateInput?.value || '', false);
+    const msg = document.getElementById('photo-msg');
+    if (!plate) { if (msg) { msg.style.color = '#ffb7b7'; msg.textContent = 'Въведи номер.'; } return; }
+    if (!isValidPlate(plate)) { if (msg) { msg.style.color = '#ffb7b7'; msg.textContent = 'Невалиден номер (мин. 4, макс. 10 знака, букви и цифри)'; } return; }
+    const ok = processPlate(plate, pendingPhoto.mode, pendingPhoto.dataUrl);
+    if (ok) { pendingPhoto.dataUrl = ''; closeModal('modal-photo'); }
+    else if (msg) { msg.style.color = '#ffb7b7'; msg.textContent = 'Виж статуса горе — записът не е направен.'; }
+  }
+
+  function openLightbox(dataUrl){
+    const lb = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    if (!lb || !img || !dataUrl) return;
+    img.src = dataUrl;
+    lb.classList.add('open');
+  }
+  window.__openLightbox = openLightbox;
+  function closeLightbox(){ document.getElementById('lightbox')?.classList.remove('open'); }
+
+  function getPhoto(plate){ return state.photos?.[plate] || ''; }
+  function setPhoto(plate, dataUrl){ if (!state.photos) state.photos = {}; if (dataUrl) state.photos[plate] = dataUrl; }
+  function deletePhoto(plate){ if (state.photos) delete state.photos[plate]; }
+  function trimLogPhotos(limit){
+    if (!state.log?.length) return;
+    const max = limit || 80;
+    for (let i = max; i < state.log.length; i++) {
+      if (state.log[i].entryPhoto) delete state.log[i].entryPhoto;
+      if (state.log[i].exitPhoto) delete state.log[i].exitPhoto;
+    }
+  }
+  function handleImportFile(e){
+    const file = e.target.files?.[0]; e.target.value = ''; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { try { const parsed = JSON.parse(String(reader.result || '{}')); const data = parsed.data || parsed; if (!data || typeof data !== 'object') throw new Error('Невалиден файл.'); snapshot(); state.active = data.active || {}; state.log = Array.isArray(data.log) ? data.log : []; state.subscribers = data.subscribers || {}; state.customers = data.customers || {}; state.photos = data.photos || {}; persist(); showStatusWarn('Данните са импортнати.'); render(); } catch { showStatusErr('Грешен JSON файл.'); } };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function openSubsWithPassword(){
+    if (Date.now() - subsUnlockedAt < SUBS_UNLOCK_MS) {
+      openModal('modal-subs');
+      return;
+    }
+    const entered = prompt('Въведи парола за достъп до абонати:');
+    if (entered === null) return;
+    if (entered === SUBS_PASSWORD) {
+      subsUnlockedAt = Date.now();
+      openModal('modal-subs');
+    } else {
+      showStatusErr('Грешна парола.');
+    }
+  }
+
+  function switchSubsTab(tab){
+    const tabs = ['subscribers', 'customers', 'reports'];
+    for (const t of tabs) {
+      const panel = document.getElementById('subs-tab-' + t);
+      const btn = document.getElementById('stab-' + t);
+      if (panel) panel.style.display = (t === tab) ? '' : 'none';
+      if (btn) { btn.classList.toggle('active', t === tab); }
+    }
+    if (tab === 'customers') renderCustomerList();
+  }
+
+  function switchCheckTab(tab){
+    const tabs = ['single', 'batch'];
+    for (const t of tabs) {
+      const panel = document.getElementById('check-tab-' + t);
+      const btn = document.getElementById('ctab-' + t);
+      if (panel) panel.style.display = (t === tab) ? '' : 'none';
+      if (btn) btn.classList.toggle('active', t === tab);
+    }
+  }
+
+  function triggerBatchPick(){
+    const input = document.getElementById('batch-file');
+    if (input) { input.value = ''; input.click(); }
+  }
+
+  function handleBatchFiles(e){
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    const countEl = document.getElementById('batch-count');
+    if (countEl) countEl.textContent = `Зареждам ${files.length} снимки...`;
+    let loaded = 0;
+    for (const file of files) {
+      if (!/^image\//.test(file.type)) { loaded++; continue; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        compressImage(String(reader.result || ''), 700, 0.5).then(dataUrl => {
+          batchPhotos.push({ dataUrl, plate: '', result: '', aiStatus: 'pending' });
+          loaded++;
+          if (loaded >= files.length) {
+            renderBatchList();
+            runBatchAI();
+          }
+        }).catch(() => { loaded++; if (loaded >= files.length) { renderBatchList(); runBatchAI(); } });
+      };
+      reader.onerror = () => { loaded++; if (loaded >= files.length) { renderBatchList(); runBatchAI(); } };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async function runBatchAI(){
+    const countEl = document.getElementById('batch-count');
+    let done = 0;
+    const total = batchPhotos.filter(p => p.aiStatus === 'pending').length;
+    if (!total) return;
+    // Обработваме последователно за да не задръстим мрежата
+    for (let i = 0; i < batchPhotos.length; i++) {
+      if (batchPhotos[i].aiStatus !== 'pending') continue;
+      if (countEl) countEl.textContent = `🤖 AI разпознава ${done+1}/${total}...`;
+      const plate = await recognizePlateAI(batchPhotos[i].dataUrl);
+      batchPhotos[i].plate = plate || '';
+      batchPhotos[i].aiStatus = plate ? 'done' : 'failed';
+      const inp = document.querySelector(`[data-batch-idx="${i}"]`);
+      if (inp) inp.value = batchPhotos[i].plate;
+      done++;
+    }
+    if (countEl) countEl.textContent = `${batchPhotos.length} снимки • AI разпозна ${batchPhotos.filter(p=>p.aiStatus==='done').length}/${total}`;
+  }
+
+  function renderBatchList(){
+    const list = document.getElementById('batch-list');
+    const countEl = document.getElementById('batch-count');
+    if (!list) return;
+    if (countEl) countEl.textContent = batchPhotos.length ? `${batchPhotos.length} снимки заредени` : '';
+    if (!batchPhotos.length) { list.innerHTML = ''; return; }
+    list.innerHTML = batchPhotos.map((item, i) => `
+      <div class="item batch-item" style="margin-bottom:10px">
+        <div class="batch-row">
+          <img src="${item.dataUrl}" class="photo-thumb batch-photo" data-photo-open="${item.dataUrl}" alt="${i+1}" />
+          <div class="batch-content">
+            <div class="batch-input-row">
+              <span class="minor batch-num">${i+1}.</span>
+              <input class="field mono batch-plate-input" type="text" maxlength="10" placeholder="Номер" value="${escapeAttr(item.plate)}" data-batch-idx="${i}" />
+              <button class="button small batch-check-btn" data-batch-check="${i}">Провери</button>
+            </div>
+            <div class="batch-result-${i}" style="margin-top:4px">${item.result}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    // restore plate values from state
+    for (let i = 0; i < batchPhotos.length; i++) {
+      const inp = list.querySelector(`[data-batch-idx="${i}"]`);
+      if (inp && batchPhotos[i].plate) inp.value = batchPhotos[i].plate;
+    }
+  }
+
+  function doBatchCheck(idx){
+    const item = batchPhotos[idx];
+    if (!item) return;
+    const inp = document.querySelector(`[data-batch-idx="${idx}"]`);
+    const plate = normalizePlate(inp?.value || '', false);
+    item.plate = plate;
+    if (!plate) { setBatchResult(idx, '<span style="color:#ffb7b7">Въведи номер.</span>'); return; }
+    if (!isValidPlate(plate)) { setBatchResult(idx, '<span style="color:#ffb7b7">Невалиден номер (мин. 4 знака).</span>'); return; }
+    const sub = state.subscribers[plate];
+    const period = getActivePeriod(plate);
+    if (state.active[plate]) {
+      const entry = state.active[plate];
+      const elapsed = Date.now() - entry.entryTime;
+      const fee = period ? 'БЕЗПЛАТНО' : money(calcFee(elapsed));
+      setBatchResult(idx, `<span style="color:var(--green)">✅ ПАРКИРАНА</span> • ${formatDuration(elapsed)} • ${fee}${sub ? ' • ⭐' + escapeHtml(sub.name || '') : ''}`);
+    } else {
+      const recent = state.log.find(x => x.plate === plate);
+      if (recent) {
+        setBatchResult(idx, `<span style="color:var(--accent)">⚠️ НАПУСНАЛА</span> • ${formatTime(recent.exitTime)}${sub ? ' • ⭐' + escapeHtml(sub.name || '') : ''}`);
+      } else {
+        setBatchResult(idx, `<span style="color:var(--red)">❌ НЕ Е В СИСТЕМАТА</span>${sub ? ' • ⭐' + escapeHtml(sub.name || '') : ''}`);
+      }
+    }
+  }
+
+  function setBatchResult(idx, html){
+    batchPhotos[idx].result = html;
+    const el = document.querySelector(`.batch-result-${idx}`);
+    if (el) el.innerHTML = html;
+  }
+
+  function clearBatch(){
+    batchPhotos.length = 0;
+    renderBatchList();
+  }
+
+  function setReportPeriod(period){
+    const fromEl = document.getElementById('report-from');
+    const toEl = document.getElementById('report-to');
+    if (!fromEl || !toEl) return;
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+    if (period === 'today') {
+      fromEl.value = todayLocal();
+      toEl.value = todayLocal();
+    } else if (period === 'week') {
+      const dow = now.getDay() || 7;
+      const mon = new Date(y, m, d - dow + 1);
+      fromEl.value = dateToLocalInput(mon);
+      toEl.value = todayLocal();
+    } else if (period === 'month') {
+      fromEl.value = `${y}-${String(m + 1).padStart(2,'0')}-01`;
+      toEl.value = todayLocal();
+    } else if (period === 'prev-month') {
+      const pm = m === 0 ? 11 : m - 1;
+      const py = m === 0 ? y - 1 : y;
+      const lastDay = new Date(py, pm + 1, 0).getDate();
+      fromEl.value = `${py}-${String(pm + 1).padStart(2,'0')}-01`;
+      toEl.value = `${py}-${String(pm + 1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    }
+    generateReport();
+  }
+
+  function generateReport(){
+    const fromEl = document.getElementById('report-from');
+    const toEl = document.getElementById('report-to');
+    const target = document.getElementById('report-result');
+    if (!fromEl || !toEl || !target) return;
+    if (!fromEl.value || !toEl.value) { target.innerHTML = '<div class="note" style="color:#ffb7b7">Избери период.</div>'; return; }
+    const fromTs = dateStartTs(fromEl.value);
+    const toTs = dateEndTs(toEl.value);
+    if (toTs < fromTs) { target.innerHTML = '<div class="note" style="color:#ffb7b7">Крайната дата трябва да е след началната.</div>'; return; }
+
+    const rows = state.log.filter(r => r.exitTime >= fromTs && r.exitTime <= toTs);
+
+    const byDay = {};
+    for (const r of rows) {
+      const day = r.date;
+      if (!byDay[day]) byDay[day] = { exits: 0, paid: 0, free: 0, revenue: 0 };
+      byDay[day].exits++;
+      if (r.subscriber) { byDay[day].free++; }
+      else { byDay[day].paid++; byDay[day].revenue += Number(r.fee || 0); }
+    }
+
+    const days = Object.keys(byDay).sort().reverse();
+    const totalExits = rows.length;
+    const totalPaid = rows.filter(r => !r.subscriber).length;
+    const totalFree = rows.filter(r => r.subscriber).length;
+    const totalRevenue = rows.filter(r => !r.subscriber).reduce((s, r) => s + Number(r.fee || 0), 0);
+
+    if (!days.length) {
+      target.innerHTML = '<div class="card panel" style="padding:16px;text-align:center;color:var(--muted)">Няма данни за избрания период.</div>';
+      return;
+    }
+
+    let html = '<div class="card panel"><table class="report-table"><thead><tr><th>Дата</th><th>Излезли</th><th>Платени</th><th>Абонати</th><th>Приход</th></tr></thead><tbody>';
+    for (const day of days) {
+      const d = byDay[day];
+      html += `<tr><td>${escapeHtml(day)}</td><td>${d.exits}</td><td>${d.paid}</td><td>${d.free}</td><td class="report-revenue">${d.revenue.toFixed(2)}</td></tr>`;
+    }
+    html += `</tbody><tfoot><tr class="report-total"><td><strong>ОБЩО</strong></td><td><strong>${totalExits}</strong></td><td><strong>${totalPaid}</strong></td><td><strong>${totalFree}</strong></td><td class="report-revenue"><strong>${totalRevenue.toFixed(2)} ${escapeHtml(CONFIG.currency)}</strong></td></tr>${totalPaid > 0 ? `<tr><td colspan="4" style="color:var(--muted);font-size:12px">Средно на платена кола</td><td class="report-revenue" style="font-size:12px">${(totalRevenue / totalPaid).toFixed(2)} ${escapeHtml(CONFIG.currency)}</td></tr>` : ''}</tfoot></table></div>`;
+    target.innerHTML = html;
+  }
+
+  function openModal(id){ document.getElementById(id)?.classList.add('open'); }
+  function closeModal(id){
+    document.getElementById(id)?.classList.remove('open');
+    if (id === 'modal-check') {
+      const preview = document.getElementById('check-photo-preview');
+      if (preview) { preview.src = ''; preview.style.display = 'none'; }
+      const plate = document.getElementById('check-plate'); if (plate) plate.value = '';
+      const result = document.getElementById('check-result'); if (result) result.innerHTML = '';
+      batchPhotos.length = 0;
+    }
+  }
+  function showStatusErr(msg){ showToast(`<div class="status-box err"><div class="status-title">ГРЕШКА</div><div class="status-meta">${escapeHtml(msg)}</div></div>`); }
+  function showStatusWarn(msg){ showToast(`<div class="status-box warn"><div class="status-title">ИНФО</div><div class="status-meta">${escapeHtml(msg)}</div></div>`); }
+  function showToast(html){
+    ui.toast = html;
+    const el = document.getElementById('status');
+    if (el) el.innerHTML = html;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { ui.toast = ''; const el2 = document.getElementById('status'); if (el2) el2.innerHTML = ''; }, 5000);
+  }
+
+  function normalizePlate(v, partial){
+    const map = {'А':'A','В':'B','Е':'E','К':'K','М':'M','Н':'H','О':'O','Р':'P','С':'C','Т':'T','У':'Y','Х':'X','a':'A','b':'B','c':'C','e':'E','h':'H','k':'K','m':'M','o':'O','p':'P','t':'T','x':'X','y':'Y','а':'A','в':'B','е':'E','к':'K','м':'M','н':'H','о':'O','р':'P','с':'C','т':'T','у':'Y','х':'X'};
+    let out = String(v || '').toUpperCase().replace(/\s+/g,'').split('').map(ch => map[ch] || ch).join('');
+    out = out.replace(/[^A-Z0-9]/g,'');
+    return partial ? out.slice(0,10) : out;
+  }
+  // Приема всички номера: БГ (CA1234KM), румънски (B123ABC), гръцки (ABC1234),
+  // германски (M-AB 1234), турски (34 ABC 123), и др. - между 4 и 10 знака, само букви+цифри
+  function isValidPlate(plate){
+    const p = String(plate || '').toUpperCase().replace(/[-\s]/g, '');
+    // Трябва поне 4 знака, максимум 10, и да съдържа букви+цифри
+    if (p.length < 4 || p.length > 10) return false;
+    if (!/^[A-Z0-9]+$/.test(p)) return false;
+    if (!/[A-Z]/.test(p) || !/\d/.test(p)) return false; // трябва и букви, и цифри
+    return true;
+  }
+  // Многоетажна тарифа — взимаме най-изгодната комбинация от тиерите.
+  // Например за 30ч с 2.5/час бихме платили 75€, но 24-часов пакет = 10€ + 6 часа × 2.5€ = 25€.
+  function calcFee(ms){
+    const totalHours = Number(ms) / 3600000;
+    if (totalHours <= 0) return '0.00';
+    
+    const tiers = CONFIG.pricingTiers || [{ hours: 1, price: CONFIG.ratePerHour }];
+    // Сортирай tier-ите от най-голям към най-малък
+    const sorted = tiers.slice().sort((a, b) => b.hours - a.hours);
+    
+    let remainingHours = totalHours;
+    let totalCost = 0;
+    
+    // За всеки tier: колко цели пакета побираме?
+    for (const tier of sorted) {
+      if (remainingHours <= 0) break;
+      const fullPackages = Math.floor(remainingHours / tier.hours);
+      if (fullPackages > 0) {
+        totalCost += fullPackages * tier.price;
+        remainingHours -= fullPackages * tier.hours;
+      }
+    }
+    
+    // Останалите часове - таксуваме по най-малкия tier (1 час), но с минимум 1 час
+    if (remainingHours > 0) {
+      const smallestTier = sorted[sorted.length - 1];
+      // Начисляваме целите часове + 1 ако има остатък
+      const billableHours = Math.ceil(remainingHours / smallestTier.hours) * smallestTier.hours;
+      const extra = (billableHours / smallestTier.hours) * smallestTier.price;
+      totalCost += extra;
+    }
+    
+    // Финална оптимизация — сравни с всеки голям tier и виж дали е по-евтино
+    // Например 23 часа × 2.5€ = 57.5€, но 24-часов пакет е 10€
+    for (const tier of sorted) {
+      if (totalCost > tier.price && totalHours <= tier.hours) {
+        totalCost = tier.price;
+      }
+    }
+    
+    return totalCost.toFixed(2);
+  }
+  
+  // Връща описание как е калкулирана таксата (за информация)
+  function calcFeeBreakdown(ms){
+    const totalHours = Number(ms) / 3600000;
+    if (totalHours <= 0) return '0 часа';
+    const fee = calcFee(ms);
+    
+    // Намери кой tier "печели"
+    const tiers = CONFIG.pricingTiers.slice().sort((a,b)=>a.hours-b.hours);
+    for (const t of tiers) {
+      if (totalHours <= t.hours && Number(fee) === t.price) {
+        return `${t.label} (${formatDuration(ms)})`;
+      }
+    }
+    return formatDuration(ms);
+  }
+  function money(v){ return `${Number(v).toFixed(2)} ${CONFIG.currency}`; }
+  function formatTime(ts){ return new Date(ts).toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+  function formatDate(ts){ return new Date(ts).toLocaleDateString('bg-BG',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  function formatDuration(ms){ const total = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60; if (h > 0) return `${h}ч ${m}м`; if (m > 0) return `${m}м ${s}с`; return `${s}с`; }
+  function daysLeft(ts){ return Math.ceil((ts - Date.now()) / 86400000); }
+  function todayLocal(){ return dateToLocalInput(new Date()); }
+  function dateToLocalInput(date){ const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2,'0'), d = String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
+  function addMonthsLocal(dateStr, months){ const [y,m,d] = dateStr.split('-').map(Number); const dt = new Date(y, m - 1, d, 12, 0, 0, 0); dt.setMonth(dt.getMonth() + months); dt.setDate(dt.getDate() - 1); return dateToLocalInput(dt); }
+  function dateStartTs(dateStr){ const [y,m,d] = dateStr.split('-').map(Number); return new Date(y, m - 1, d, 0, 0, 0, 0).getTime(); }
+  function dateEndTs(dateStr){ const [y,m,d] = dateStr.split('-').map(Number); return new Date(y, m - 1, d, 23, 59, 59, 999).getTime(); }
+  function matchQuery(text, q){ return String(text || '').toLowerCase().includes(String(q || '').toLowerCase()); }
+  function safeJsonParse(text, fallback){ try { return JSON.parse(text); } catch { return fallback; } }
+  function downloadFile(content, filename, mime){ const blob = new Blob([content], { type: mime }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+  function csvCell(v){ return `"${String(v ?? '').replace(/"/g,'""')}"`; }
+  function escapeHtml(value){ return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeAttr(value){ return escapeHtml(value).replace(/`/g,'&#96;'); }
+  function jsStr(value){ return String(value ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+})();
+</script>
+</body>
+</html>
